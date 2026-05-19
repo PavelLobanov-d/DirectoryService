@@ -6,8 +6,4 @@
     <Project Path="src/DirectoryService.Infrastructure.PostgreSQL/DirectoryService.Infrastructure.PostgreSQL.csproj" />
     <Project Path="src/DirectoryService.Web/DirectoryService.Web.csproj" />
   </Folder>
-  <Folder Name="/Элементы решения/">
-    <File Path="Directory.Build.props" />
-    <File Path="Directory.Packages.props" />
-  </Folder>
 </Solution>
