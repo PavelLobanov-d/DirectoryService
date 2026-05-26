@@ -4,34 +4,23 @@ using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
-namespace DirectoryService.Domain.Positions
+namespace DirectoryService.Domain.PositionsMatrix
 {
     /// <summary>
     /// определяет матричную должность и структуру подчинения. Применяется ко всем департаментам
     /// </summary>
     internal class PositionMatrix
     {
-        private PositionMatrix(Guid id, PositionName name, Slug slug, PositionMatrix? parent, List<PositionMatrix>? childs)
+        private PositionMatrix(PositionMatrixId id, PositionName name, Slug slug, PositionMatrixId? parentId, PathSlug? parentPath)
         {
             this.id = id;
             Name = name;
             Slug = slug;
-            _parent = parent;
-            if (_parent != null)
-            {
-                ParentId = _parent.id;
-                PathSlug = _parent.PathSlugFull;
-            }                    
-            else
-            {
-                ParentId = null;
-                PathSlug = null;
-            }
-                
-            _childs = childs;
+            ParentId = parentId;
+            PathSlug = parentPath;
         }
 
-        public Guid id { get; private set; }
+        public PositionMatrixId id { get; private set; }
         /// <summary>
         /// название должности
         /// </summary>
@@ -43,12 +32,12 @@ namespace DirectoryService.Domain.Positions
         /// <summary>
         /// иерархия родительских Slug'ов
         /// </summary>
-        public Slug? PathSlug { get; private set; }
-        public Slug PathSlugFull => PathSlug == null ? Slug : Slug.Create(PathSlug.Value + "." + Slug.Value);
+        public PathSlug? PathSlug { get; private set; }
+        public PathSlug PathSlugFull => PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
         /// <summary>
         /// вышестоящая должность
         /// </summary>
-        public Guid? ParentId { get; private set; }
+        public PositionMatrixId? ParentId { get; private set; }
         
         private PositionMatrix? _parent;
         /// <summary>
@@ -56,11 +45,11 @@ namespace DirectoryService.Domain.Positions
         /// </summary>
         public PositionMatrix? Parent => _parent;
 
-        private readonly List<PositionMatrix>? _childs;
+        private readonly List<PositionMatrix> _childs = [];
         /// <summary>
         /// потомки
         /// </summary>
-        public IReadOnlyList<PositionMatrix>? Childs => _childs;
+        public IReadOnlyList<PositionMatrix> Childs => _childs;
         /// <summary>
         /// коллекция записей статистики для сохранения
         /// </summary>
@@ -76,11 +65,14 @@ namespace DirectoryService.Domain.Positions
         /// <exception cref="ArgumentException"></exception>
         public static PositionMatrix Create(PositionName name, Slug slug, PositionMatrix? parent)
         {
-            PositionMatrix newObject = new(Guid.CreateVersion7(), name, slug, parent, null);
+            PositionMatrix newObject = new PositionMatrix(new PositionMatrixId(Guid.CreateVersion7()), name, slug, parent?.id, parent?.PathSlugFull);
             newObject._parent = parent;
-            newObject._stats.Add(Statistics.AddStatistics(newObject.id, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.CREATE, $"Создание матричной должности {newObject.Name}"));
+            newObject._stats.Add(Statistics.AddStatistics(newObject.id.Value, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.CREATE, $"Создание матричной должности {newObject.Name}"));
             if(parent != null)
-                newObject._stats.Add(Statistics.AddStatistics(newObject.id, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.ATTACH, $"Родительская должность: {parent.Name}"));
+            {
+                parent._childs.Add(newObject);
+                newObject._stats.Add(Statistics.AddStatistics(newObject.id.Value, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.ATTACH, $"Родительская должность: {parent.Name}"));
+            }
 
             return newObject;
         }
@@ -94,21 +86,25 @@ namespace DirectoryService.Domain.Positions
         {
             //надо сделать пересчёт частных должностей, привязанных к этой матричной
 
-            if ((_parent == null ? Guid.Empty : _parent.id) == (newParent == null ? Guid.Empty : newParent.id))
+            if (ParentId == newParent?.id)
             {
                 return false;
             }
 
             if(_parent != null)
             {
-                _stats.Add(Statistics.AddStatistics(id, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.DETACH, $"Отсоединён от {PathSlug}", _parent.id, _parent.GetType().Name));
+                _parent._childs.Remove(this);
+
+                _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.DETACH, $"Отсоединён от {PathSlug}", _parent.id.Value, _parent.GetType().Name));
             }
 
             if(newParent != null)
             {
                 ParentId = newParent.id;
                 PathSlug = newParent.PathSlugFull;
-                _stats.Add(Statistics.AddStatistics(id, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.ATTACH, $"Присоединён к {newParent.PathSlugFull}", newParent.id, newParent.GetType().Name));
+                newParent._childs.Add(this);
+
+                _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.ATTACH, $"Присоединён к {newParent.PathSlugFull}", newParent.id.Value, newParent.GetType().Name));
             }
 
             _parent = newParent;
@@ -130,33 +126,31 @@ namespace DirectoryService.Domain.Positions
                 if (PathSlug != _parent.PathSlugFull)
                 {
                     PathSlug = _parent.PathSlugFull;
-                    _stats.Add(Statistics.AddStatistics(id, this.GetType().Name, Statistics.Level.FINEST, Statistics.Action.UPDATE, $"Переподчинение {PathSlug}"));
+                    _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.FINEST, Statistics.Action.UPDATE, $"Переподчинение {PathSlug}"));
                     result = true;
-                }                
+                }
             }
             else
             {
-                if (ParentId.HasValue)
+                if (ParentId != null)
                 {
                     ParentId = null;
                     if (PathSlug != null)
                     {
-                        _stats.Add(Statistics.AddStatistics(id, this.GetType().Name, Statistics.Level.FINEST, Statistics.Action.UPDATE, $"Становится корневым"));
+                        _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.FINEST, Statistics.Action.UPDATE, $"Становится корневым"));
                     }
                     result = true;
                 }
                 PathSlug = null;
             }
 
-            if (_childs != null)
-            {
-                foreach (PositionMatrix child in _childs)
+            if (_childs != null && _childs.Select(child =>
                 {
-                    if (child.refresh())
-                        result = true;
-                }
-            }
-
+                    bool v = child.refresh();
+                    return v;
+                }).Contains(true))
+                result = true;
+   
             return result;
         }
         /// <summary>
@@ -171,20 +165,21 @@ namespace DirectoryService.Domain.Positions
             if (name != null && Name != name)
             {
                 validationName(name);
-                _stats.Add(Statistics.AddStatistics(id, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.UPDATE, $"Название изменено с {Name} на {name}"));
+                _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.UPDATE, $"Название изменено с {Name} на {name}"));
                 Name = name;
                 result = true;
             }
             if (slug != null && Slug != slug)
             {
-                _stats.Add(Statistics.AddStatistics(id, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.UPDATE, $"Идентификатор изменен с {Slug} на {slug}"));
+                _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.UPDATE, $"Идентификатор изменен с {Slug} на {slug}"));
                 Slug = slug;
-                if(_childs != null)
+
+                if (_childs != null && _childs.Select(child =>
                 {
-                    foreach(PositionMatrix child in _childs)
-                        child.refresh();
-                }
-                result = true;
+                    bool v = child.refresh();
+                    return v;
+                }).Contains(true))
+                    result = true;
             }
 
             return result;
@@ -200,9 +195,9 @@ namespace DirectoryService.Domain.Positions
 
             if (_childs != null && _childs.Count > 0)
             {
-                throw new Exception("Сначала необходимо удалить зависимые матричные должности");
+                throw new DSException("Сначала необходимо удалить зависимые матричные должности");
             }
-            _stats.Add(Statistics.AddStatistics(id, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.DELETE, $"Удаление: {Name}"));
+            _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.INFO, Statistics.Action.DELETE, $"Удаление: {Name}"));
 
             if(_parent != null)
                 _parent.Childs?.ToList().Remove(this);
@@ -215,19 +210,37 @@ namespace DirectoryService.Domain.Positions
         /// <returns></returns>
         private void validationName(PositionName name)
         {
-            if(_parent != null)
+            if(_parent != null && _parent.Childs != null)
             {
                 foreach(PositionMatrix position in _parent.Childs)
                 {
-                    if(position.id != this.id)
+                    if (position.id != this.id && position.Name == name)
                     {
-                        if(position.Name == name)
-                        {
-                            throw new ArgumentException("Не уникальное название должности");
-                        }
+                        throw new DSException("Не уникальное название должности");
                     }
                 }
             }
+        }
+        /// <summary>
+        /// проверяет, является ли должность родителем этой
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool isParent(PositionMatrixId id)
+        {
+            if (this.id == id)
+            {
+                return true;
+            }
+            else if (Parent != null)
+            {
+                return Parent.isParent(id);
+            }
+            return false;
+        }
+        public bool isParent(PositionMatrix position)
+        {
+            return isParent(position.id);
         }
     }
 }

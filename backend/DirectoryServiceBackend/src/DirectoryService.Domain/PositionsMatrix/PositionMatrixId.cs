@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DirectoryService.Domain.Positions
+namespace DirectoryService.Domain.PositionsMatrix
 {
     public record PositionMatrixId(Guid Value);
 }

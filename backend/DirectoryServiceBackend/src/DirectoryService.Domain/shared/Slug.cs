@@ -4,9 +4,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace DirectoryService.Domain
+namespace DirectoryService.Domain.shared
 {
-    public partial record Slug
+    public sealed partial record Slug
     {
 
         public const int IDENTIFIER_MIN_LENGHT = 1;
@@ -28,7 +28,7 @@ namespace DirectoryService.Domain
 
             if (!_slugRegex.IsMatch(value))
             {
-                throw new ArgumentException("Значение не соответствует шаблону");
+                throw new ArgumentException("Значение не соответствует шаблону", nameof(value));
             }
 
             if (value.Length < IDENTIFIER_MIN_LENGHT || value.Length > IDENTIFIER_MAX_LENGHT)

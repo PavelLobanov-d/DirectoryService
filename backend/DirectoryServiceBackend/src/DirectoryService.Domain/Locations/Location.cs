@@ -1,5 +1,4 @@
-﻿using DirectoryService.Domain.Departments;
-using DirectoryService.Domain.shared;
+﻿using DirectoryService.Domain.shared;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -35,7 +34,7 @@ namespace DirectoryService.Domain.Locations
         /// изменить
         /// </summary>
         /// <param name="name"></param>
-        /// <param name="slug"></param>
+        /// <param name="address"></param>
         /// <returns>true, если были изменения</returns>
         public bool Update(LocationName? name, Address? address)
         {
@@ -56,6 +55,5 @@ namespace DirectoryService.Domain.Locations
 
             return result;
         }
-
     }
 }
