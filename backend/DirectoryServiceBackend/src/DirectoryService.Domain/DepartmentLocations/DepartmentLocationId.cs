@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DirectoryService.Domain.DepartmentLocations
-{
-    public record DepartmentLocationId(Guid Value);
-}
+namespace DirectoryService.Domain.DepartmentLocations;
+
+public record DepartmentLocationId(Guid Value);

@@ -4,56 +4,62 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace DirectoryService.Domain.Locations
+namespace DirectoryService.Domain.Locations;
+
+internal class Location
 {
-    internal class Location
+    private Location(
+        LocationId id, 
+        LocationName name, 
+        Address address)
     {
-        private Location(LocationId id, LocationName name, Address address)
+        Id = id;
+        Name = name;
+        Address = address;
+    }
+    public LocationId Id { get; private set; }
+    public LocationName Name { get; private set; }
+    public Address Address { get; private set; }
+    /// <summary>
+    /// коллекция записей статистики для сохранения
+    /// </summary>
+    private readonly List<Statistics> _stats = [];
+
+    public static Location Create(
+        LocationName name, 
+        Address address)
+    {
+        Location newObject = new(new LocationId(Guid.CreateVersion7()), name, address);
+        newObject._stats.Add(Statistics.AddStatistics(newObject.Id.Value, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.CREATE, $"Создание локации {newObject.Name}"));
+
+        return newObject;
+    }
+
+    /// <summary>
+    /// изменить
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="address"></param>
+    /// <returns>true, если были изменения</returns>
+    public bool Update(
+        LocationName? name, 
+        Address? address)
+    {
+        bool result = false;
+        if (name != null && Name != name)
         {
-            this.id = id;
+            _stats.Add(Statistics.AddStatistics(Id.Value, this.GetType().Name, Statistics.Level.FINE, Statistics.Action.UPDATE, $"Название изменено с {Name} на {name}"));
             Name = name;
+            result = true;
+        }
+        if (address != null && Address != address)
+        {
+            _stats.Add(Statistics.AddStatistics(Id.Value, this.GetType().Name, Statistics.Level.FINE, Statistics.Action.UPDATE, $"Адрес изменен с {Address} на {address}"));
             Address = address;
-        }
-        public LocationId id { get; private set; }
-        public LocationName Name { get; private set; }
-        public Address Address { get; private set; }
-        /// <summary>
-        /// коллекция записей статистики для сохранения
-        /// </summary>
-        private readonly List<Statistics> _stats = [];
 
-        public static Location Create(LocationName name, Address address)
-        {
-            Location newObject = new(new LocationId(Guid.CreateVersion7()), name, address);
-            newObject._stats.Add(Statistics.AddStatistics(newObject.id.Value, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.CREATE, $"Создание локации {newObject.Name}"));
-
-            return newObject;
+            result = true;
         }
 
-        /// <summary>
-        /// изменить
-        /// </summary>
-        /// <param name="name"></param>
-        /// <param name="address"></param>
-        /// <returns>true, если были изменения</returns>
-        public bool Update(LocationName? name, Address? address)
-        {
-            bool result = false;
-            if (name != null && Name != name)
-            {
-                _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.FINE, Statistics.Action.UPDATE, $"Название изменено с {Name} на {name}"));
-                Name = name;
-                result = true;
-            }
-            if (address != null && Address != address)
-            {
-                _stats.Add(Statistics.AddStatistics(id.Value, this.GetType().Name, Statistics.Level.FINE, Statistics.Action.UPDATE, $"Адрес изменен с {Address} на {address}"));
-                Address = address;
-
-                result = true;
-            }
-
-            return result;
-        }
+        return result;
     }
 }
