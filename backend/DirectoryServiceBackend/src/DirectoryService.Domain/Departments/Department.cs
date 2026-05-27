@@ -1,0 +1,334 @@
+﻿using DirectoryService.Domain.DepartmentLocations;
+using DirectoryService.Domain.DepartmentPositions;
+using DirectoryService.Domain.Locations;
+using DirectoryService.Domain.PositionsMatrix;
+using DirectoryService.Domain.shared;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Text;
+
+namespace DirectoryService.Domain.Departments;
+
+internal class Department
+{
+    private Department(
+        DepartmentId id, 
+        DepartmentName name, 
+        Slug slug, 
+        DepartmentId? parentId, 
+        PathSlug pathSlug, 
+        DepartmentPositionId chiefDepartmentPositionId)  //, IEnumerable<DepartmentPosition>? departmentPositions, IEnumerable<DepartmentLocation>? departmentLocations
+    {
+        Id = id;
+        Name = name;
+        Slug = slug;
+        ParentId = parentId;
+        PathSlug = pathSlug;
+        ChiefDepartmentPositionId = chiefDepartmentPositionId;
+        /*
+        if (departmentPositions != null)
+            _departmentPositions = departmentPositions.ToList();
+        if (departmentLocations != null)
+            _departmentLocations = departmentLocations.ToList();
+        */
+    }
+    public DepartmentId Id { get; private set; }
+    public DepartmentName Name { get; private set; }
+    public Slug Slug { get; private set; }
+    public PathSlug? PathSlug { get; private set; } = null;
+    public PathSlug PathSlugFull => PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
+    public DepartmentId? ParentId { get; private set; }
+    private Department? _parent = null;
+    /// <summary>
+    /// родитель
+    /// </summary>
+    public Department? Parent => _parent;
+
+    /// <summary>
+    /// потомки
+    /// </summary>
+    public List<Department> Childs = [];
+    /// <summary>
+    /// id должности начальника департамента
+    /// </summary>
+    public DepartmentPositionId ChiefDepartmentPositionId { get; private set; }
+    private readonly PositionMatrix _chiefPosition = null!;
+    /// <summary>
+    /// матричная должность начальника департамента. Остальные должности департамента должны быть потомками от этой
+    /// </summary>
+    public PositionMatrix ChiefPosition => _chiefPosition;
+    private readonly List<DepartmentPosition> _departmentPositions = [];
+    //public IReadOnlyList<DepartmentPosition> DepartmentPositions => _departmentPositions;
+    private readonly List<DepartmentLocation> _departmentLocations = [];
+    //public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;
+
+    /// <summary>
+    /// коллекция записей статистики для сохранения
+    /// </summary>
+    private readonly List<Statistics> _stats = [];
+
+    public static Department Create(
+        DepartmentName name, 
+        Slug slug, 
+        Department? parent, 
+        DepartmentPosition chiefPosition)
+    {
+        if (parent == null)
+        {
+            if(chiefPosition.PositionMatrix.Parent != null)
+            {
+                throw new DSException("Для департамента верхнего уровня в качестве руководителя должна быть выбрана должность верхнего уровня");
+            }
+        }
+        else
+        {
+            if (chiefPosition.PositionMatrix.Parent == null)
+            {
+                throw new DSException("Для подчинённого департамента в качестве руководителя не может быть выбрана должность верхнего уровня");
+            }
+            if (!chiefPosition.PositionMatrix.isParent(parent.ChiefPosition))
+            {
+                throw new DSException("Для подчинённого департамента в качестве руководителя должна быть выбрана должность, подчинённая руководителю родительского департамента");
+            }
+        }
+
+        Department newObject = new(
+            new DepartmentId(Guid.CreateVersion7()), 
+            name, 
+            slug, 
+            parent?.Id, 
+            parent?.PathSlugFull, 
+            chiefPosition.Id); //, departmentPositions: null, departmentLocations: null
+        newObject._stats.Add(Statistics.AddStatistics(newObject.Id.Value, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.CREATE, $"Создание департамента {newObject.Name}"));
+
+        newObject._parent = parent;
+        if (parent != null)
+        {
+            parent.Childs.Add(newObject);
+            newObject._stats.Add(Statistics.AddStatistics(
+                newObject.Id.Value, 
+                newObject.GetType().Name, 
+                Statistics.Level.INFO, 
+                Statistics.Action.ATTACH, 
+                $"Вышестоящий департамент: {parent.Name}", 
+                parent.Id.Value, 
+                parent.GetType().Name));
+        }
+
+        return newObject;
+    }
+    /// <summary>
+    /// добавить связку департамент-должность
+    /// </summary>
+    /// <param name="positionMatrix"></param>
+    /// <returns></returns>
+    /// <exception cref="DSException"></exception>
+    public DepartmentPosition LinkPosition(PositionMatrix positionMatrix)
+    {
+        if(!positionMatrix.isParent(this._chiefPosition))
+        {
+            throw new DSException("Добавляемая должность должна быть подчинённой руководителю департамента");
+        }
+        DepartmentPosition newLink = new DepartmentPosition(this, positionMatrix);
+        this._departmentPositions.Add(newLink);
+        _stats.Add(Statistics.AddStatistics(
+            positionMatrix.Id.Value, 
+            positionMatrix.GetType().Name, 
+            Statistics.Level.INFO, 
+            Statistics.Action.UPDATE, 
+            $"Присоединена должность {positionMatrix.Name}", 
+            this.Id.Value, 
+            this.GetType().Name));
+
+        return newLink;
+    }
+
+    /// <summary>
+    /// добавить связку департамент-локация
+    /// </summary>
+    /// <param name="location"></param>
+    /// <returns></returns>
+    /// <exception cref="DSException"></exception>
+    public DepartmentLocation LinkLocation(Location location)
+    {
+        DepartmentLocation newLink = new DepartmentLocation(this, location);
+        this._departmentLocations.Add(newLink);
+        _stats.Add(Statistics.AddStatistics(
+            location.Id.Value, 
+            location.GetType().Name, 
+            Statistics.Level.INFO, 
+            Statistics.Action.UPDATE, 
+            $"Присоединена локация {location.Name}", 
+            this.Id.Value, 
+            this.GetType().Name));
+        return newLink;
+    }
+
+    /// <summary>
+    /// заменить родителя (null - становится головным)
+    /// </summary>
+    /// <param name="newParent"></param>
+    /// <returns>true, если были изменения</returns>
+    public bool Move(Department? newParent)
+    {
+        if ((_parent == null ? Guid.Empty : _parent.Id.Value) == (newParent == null ? Guid.Empty : newParent.Id.Value))
+        {
+            return false;
+        }
+
+        if (_parent != null)
+        {
+            _stats.Add(Statistics.AddStatistics(
+                Id.Value,
+                this.GetType().Name,
+                Statistics.Level.INFO,
+                Statistics.Action.DETACH,
+                $"Отсоединён от {PathSlug}",
+                _parent.Id.Value,
+                _parent.GetType().Name));
+        }
+
+        if (newParent != null)
+        {
+            ParentId = newParent.Id;
+            PathSlug = newParent.PathSlugFull;
+            _stats.Add(Statistics.AddStatistics(
+                Id.Value, 
+                this.GetType().Name, 
+                Statistics.Level.INFO, 
+                Statistics.Action.ATTACH, 
+                $"Присоединён к {newParent.PathSlugFull}", 
+                newParent.Id.Value, 
+                newParent.GetType().Name));
+        }
+        bool result = false;
+        Department? oldParent = _parent; 
+        _parent = newParent;
+
+        if(oldParent != null && oldParent.refresh())
+            result = true;
+        if(this.refresh())
+            result = true;
+        return result;
+    }
+    /// <summary>
+    /// изменить
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="slug"></param>
+    /// <returns>true, если были изменения</returns>
+    public bool Update(DepartmentName? name, Slug? slug)
+    {
+        bool result = false;
+        if (name != null && Name != name)
+        {
+            _stats.Add(Statistics.AddStatistics(
+                Id.Value, 
+                this.GetType().Name, 
+                Statistics.Level.FINE, 
+                Statistics.Action.UPDATE, 
+                $"Название изменено с {Name} на {name}"));
+            Name = name;
+            result = true;
+        }
+        if (slug != null && Slug != slug)
+        {
+            _stats.Add(Statistics.AddStatistics(
+                Id.Value, 
+                this.GetType().Name, 
+                Statistics.Level.FINE, 
+                Statistics.Action.UPDATE, 
+                $"Идентификатор изменен с {Slug} на {slug}"));
+            Slug = slug;
+            if (Childs != null && Childs.Select(child =>
+            {
+                bool v = child.refresh();
+                return v;
+            }).Contains(true))
+                result = true;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// пересчёт
+    /// </summary>
+    /// <returns>true, если были изменения</returns>
+    private bool refresh()
+    {
+        bool result = false;
+
+        if (_parent != null)
+        {
+            ParentId = _parent.Id;
+            if (PathSlug != _parent.PathSlugFull)
+            {
+                PathSlug = _parent.PathSlugFull;
+                _stats.Add(Statistics.AddStatistics(
+                    Id.Value, 
+                    this.GetType().Name, 
+                    Statistics.Level.FINEST, 
+                    Statistics.Action.UPDATE, 
+                    $"Переподчинение {PathSlug}"));
+                result = true;
+            }
+        }
+        else
+        {
+            if (ParentId != null)
+            {
+                if (PathSlug != null)
+                {
+                    _stats.Add(Statistics.AddStatistics(
+                        Id.Value, 
+                        this.GetType().Name, 
+                        Statistics.Level.FINEST, 
+                        Statistics.Action.UPDATE, 
+                        $"Становится корневым"));
+                }
+                result = true;
+            }
+            ParentId = null;
+            PathSlug = null;
+        }
+
+        if (Childs != null && Childs.Select(child =>
+        {
+            bool v;
+            if (child.ParentId != this.Id)
+                v = Childs.Remove(child);
+            else
+                v = child.refresh();
+            return v;
+        }).Contains(true))
+            result = true;
+
+        return result;
+    }
+
+    /// <summary>
+    /// удалить департамент
+    /// </summary>
+    /// <returns>true, если были изменения</returns>
+    /// <exception cref="DSException"></exception>
+    public bool Delete()
+    {
+        if (Childs != null && Childs.Count > 0)
+        {
+            throw new DSException("Сначала необходимо удалить зависимые департаменты");
+        }
+        _stats.Add(Statistics.AddStatistics(
+            Id.Value, 
+            this.GetType().Name, 
+            Statistics.Level.INFO, 
+            Statistics.Action.DELETE, 
+            $"Удаление: {Name}"));
+
+        if (_parent != null)
+            _parent.Childs?.Remove(this);
+
+        return true;
+    }
+}
