@@ -1,14 +1,16 @@
-﻿using System;
+﻿using DirectoryService.Domain.DepartmentLocations;
+using DirectoryService.Domain.DepartmentPositions;
+using DirectoryService.Domain.Departments;
+using DirectoryService.Domain.Locations;
+using DirectoryService.Domain.PositionsMatrix;
+using DirectoryService.Domain.shared;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Npgsql;
+using System;
 using System.Collections.Generic;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
-using Npgsql;
-using DirectoryService.Domain.Departments;
-using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
-using DirectoryService.Domain.DepartmentLocations;
-using DirectoryService.Domain.DepartmentPositions;
+
 
 namespace DirectoryService.Infrastructure.PostgreSQL;
 

@@ -11,6 +11,7 @@ namespace DirectoryService.Domain.shared;
 /// </summary>
 public sealed class Statistica
 {
+    private Statistica() { }
     private Statistica(
         Guid id, 
         Guid objectId, 

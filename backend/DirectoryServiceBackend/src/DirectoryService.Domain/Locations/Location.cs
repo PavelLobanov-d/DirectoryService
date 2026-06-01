@@ -8,6 +8,7 @@ namespace DirectoryService.Domain.Locations;
 
 public sealed class Location
 {
+    private Location() { }
     private Location(
         LocationId id, 
         LocationName name, 

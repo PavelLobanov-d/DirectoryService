@@ -11,6 +11,7 @@ public record Address
 
     public string Value { get; } = string.Empty;
 
+    private Address() { }
     private Address(string value)
     {
         Value = value;

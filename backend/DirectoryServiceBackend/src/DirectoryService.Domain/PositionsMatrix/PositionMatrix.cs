@@ -11,6 +11,7 @@ namespace DirectoryService.Domain.PositionsMatrix;
 /// </summary>
 public sealed class PositionMatrix
 {
+    private PositionMatrix() { }
     private PositionMatrix(
         PositionMatrixId id, 
         PositionName name, 

@@ -9,7 +9,8 @@ namespace DirectoryService.Domain.DepartmentPositions;
 
 public sealed class DepartmentPosition
 {
-    private DepartmentPosition(
+    private DepartmentPosition() { }
+    protected internal DepartmentPosition(
         DepartmentPositionId id, 
         DepartmentId departmentId, 
         PositionMatrixId positionMatrixId)

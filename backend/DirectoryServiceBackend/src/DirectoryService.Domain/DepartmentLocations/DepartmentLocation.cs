@@ -9,9 +9,10 @@ namespace DirectoryService.Domain.DepartmentLocations;
 
 public sealed class DepartmentLocation
 {
+    private DepartmentLocation() { }
     private DepartmentLocation(
-        DepartmentLocationId id, 
-        DepartmentId departmentId, 
+        DepartmentLocationId id,
+        DepartmentId departmentId,
         LocationId locationId)
     {
         Id = id;

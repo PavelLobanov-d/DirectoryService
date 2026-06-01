@@ -11,6 +11,7 @@ public record PositionName
 
     public string Value { get; } = string.Empty;
 
+    private PositionName() { }
     private PositionName(string value)
     {
         Value = value;

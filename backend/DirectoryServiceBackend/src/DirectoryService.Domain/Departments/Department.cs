@@ -17,8 +17,10 @@ public sealed class Department
         DepartmentName name, 
         Slug slug, 
         DepartmentId? parentId, 
-        PathSlug pathSlug, 
-        DepartmentPositionId chiefDepartmentPositionId)  //, IEnumerable<DepartmentPosition>? departmentPositions, IEnumerable<DepartmentLocation>? departmentLocations
+        PathSlug pathSlug,
+        DepartmentPositionId chiefDepartmentPositionId, 
+        IEnumerable<DepartmentPosition>? departmentPositions,
+        IEnumerable<DepartmentLocation>? departmentLocations)
     {
         Id = id;
         Name = name;
@@ -26,12 +28,8 @@ public sealed class Department
         ParentId = parentId;
         PathSlug = pathSlug;
         ChiefDepartmentPositionId = chiefDepartmentPositionId;
-        /*
-        if (departmentPositions != null)
-            _departmentPositions = departmentPositions.ToList();
-        if (departmentLocations != null)
-            _departmentLocations = departmentLocations.ToList();
-        */
+        _departmentPositions = departmentPositions?.ToList();
+        _departmentLocations = departmentLocations?.ToList();
     }
     public DepartmentId Id { get; private set; }
     public DepartmentName Name { get; private set; }
@@ -53,53 +51,76 @@ public sealed class Department
     /// id должности начальника департамента
     /// </summary>
     public DepartmentPositionId ChiefDepartmentPositionId { get; private set; }
-    private readonly PositionMatrix _chiefPosition = null!;
+    private readonly DepartmentPosition _chiefDepartmentPosition = null!;
     /// <summary>
     /// матричная должность начальника департамента. Остальные должности департамента должны быть потомками от этой
     /// </summary>
-    public PositionMatrix ChiefPosition => _chiefPosition;
+    public DepartmentPosition ChiefDepartmentPosition => _chiefDepartmentPosition;
     private readonly List<DepartmentPosition> _departmentPositions = [];
-    //public IReadOnlyList<DepartmentPosition> DepartmentPositions => _departmentPositions;
     private readonly List<DepartmentLocation> _departmentLocations = [];
-    //public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;
-
+ 
     /// <summary>
     /// коллекция записей статистики для сохранения
     /// </summary>
     private readonly List<Statistica> _stats = [];
 
+    private Department() { }
+    private Department(DepartmentId id, DepartmentName name, Slug slug, Department? parent, DepartmentPosition chiefDepartmentPosition)
+    {
+        Id = id;
+        Name = name;
+        Slug = slug;
+        PathSlug = parent?.PathSlugFull;
+        ParentId = parent?.Id;
+        _parent = parent;
+        _childs = [];
+        _chiefDepartmentPosition = chiefDepartmentPosition;
+        _departmentPositions = [];
+        _departmentLocations = [];
+        _stats = [];
+    }
+
     public static Department Create(
-        DepartmentName name, 
-        Slug slug, 
-        Department? parent, 
-        DepartmentPosition chiefPosition)
+        DepartmentId id,
+        DepartmentName name,
+        Slug slug,
+        Department? parent,
+        PositionMatrix chiefPosition)
     {
         if (parent == null)
         {
-            if(chiefPosition.PositionMatrix.Parent != null)
+            if(chiefPosition.Parent != null)
             {
                 throw new DSException("Для департамента верхнего уровня в качестве руководителя должна быть выбрана должность верхнего уровня");
             }
         }
         else
         {
-            if (chiefPosition.PositionMatrix.Parent == null)
+            if (chiefPosition.Parent == null)
             {
                 throw new DSException("Для подчинённого департамента в качестве руководителя не может быть выбрана должность верхнего уровня");
             }
-            if (!chiefPosition.PositionMatrix.isParent(parent.ChiefPosition))
+            if (!chiefPosition.isParent(parent.ChiefDepartmentPosition.PositionMatrix))
             {
                 throw new DSException("Для подчинённого департамента в качестве руководителя должна быть выбрана должность, подчинённая руководителю родительского департамента");
             }
         }
 
+        DepartmentId objectId;
+        if (id == null)
+            objectId = new DepartmentId(Guid.CreateVersion7());
+        else
+            objectId = id;
+
+        DepartmentPosition objectDP = new DepartmentPosition(new DepartmentPositionId(Guid.CreateVersion7()), objectId, chiefPosition.Id);
+
         Department newObject = new(
-            new DepartmentId(Guid.CreateVersion7()), 
-            name, 
-            slug, 
-            parent?.Id, 
-            parent?.PathSlugFull, 
-            chiefPosition.Id); //, departmentPositions: null, departmentLocations: null
+            objectId,
+            name,
+            slug,
+            parent,
+            objectDP);
+
         newObject._stats.Add(Statistica.AddStatistics(newObject.Id.Value, newObject.GetType().Name, Statistica.Level.INFO, Statistica.Action.CREATE, $"Создание департамента {newObject.Name}"));
 
         newObject._parent = parent;
@@ -126,20 +147,20 @@ public sealed class Department
     /// <exception cref="DSException"></exception>
     public DepartmentPosition LinkPosition(PositionMatrix positionMatrix)
     {
-        if(!positionMatrix.isParent(this._chiefPosition))
+        if(!positionMatrix.isParent(this._chiefDepartmentPosition.PositionMatrix))
         {
             throw new DSException("Добавляемая должность должна быть подчинённой руководителю департамента");
         }
         DepartmentPosition newLink = new DepartmentPosition(this, positionMatrix);
-        this._departmentPositions.Add(newLink);
+        _departmentPositions.Add(newLink);
         _stats.Add(Statistica.AddStatistics(
             positionMatrix.Id.Value, 
             positionMatrix.GetType().Name, 
             Statistica.Level.INFO, 
             Statistica.Action.UPDATE, 
             $"Присоединена должность {positionMatrix.Name}", 
-            this.Id.Value, 
-            this.GetType().Name));
+            Id.Value,
+            GetType().Name));
 
         return newLink;
     }
@@ -160,8 +181,8 @@ public sealed class Department
             Statistica.Level.INFO, 
             Statistica.Action.UPDATE, 
             $"Присоединена локация {location.Name}", 
-            this.Id.Value, 
-            this.GetType().Name));
+            Id.Value, 
+            GetType().Name));
         return newLink;
     }
 
