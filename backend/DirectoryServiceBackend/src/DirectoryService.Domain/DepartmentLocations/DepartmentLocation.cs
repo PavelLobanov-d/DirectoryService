@@ -7,7 +7,7 @@ using System.Text;
 
 namespace DirectoryService.Domain.DepartmentLocations;
 
-internal class DepartmentLocation
+public sealed class DepartmentLocation
 {
     private DepartmentLocation(
         DepartmentLocationId id, 

@@ -6,7 +6,7 @@ using System.Text;
 
 namespace DirectoryService.Domain.Locations;
 
-internal class Location
+public sealed class Location
 {
     private Location(
         LocationId id, 
@@ -23,14 +23,14 @@ internal class Location
     /// <summary>
     /// коллекция записей статистики для сохранения
     /// </summary>
-    private readonly List<Statistics> _stats = [];
+    private readonly List<Statistica> _stats = [];
 
     public static Location Create(
         LocationName name, 
         Address address)
     {
         Location newObject = new(new LocationId(Guid.CreateVersion7()), name, address);
-        newObject._stats.Add(Statistics.AddStatistics(newObject.Id.Value, newObject.GetType().Name, Statistics.Level.INFO, Statistics.Action.CREATE, $"Создание локации {newObject.Name}"));
+        newObject._stats.Add(Statistica.AddStatistics(newObject.Id.Value, newObject.GetType().Name, Statistica.Level.INFO, Statistica.Action.CREATE, $"Создание локации {newObject.Name}"));
 
         return newObject;
     }
@@ -48,13 +48,13 @@ internal class Location
         bool result = false;
         if (name != null && Name != name)
         {
-            _stats.Add(Statistics.AddStatistics(Id.Value, this.GetType().Name, Statistics.Level.FINE, Statistics.Action.UPDATE, $"Название изменено с {Name} на {name}"));
+            _stats.Add(Statistica.AddStatistics(Id.Value, this.GetType().Name, Statistica.Level.FINE, Statistica.Action.UPDATE, $"Название изменено с {Name} на {name}"));
             Name = name;
             result = true;
         }
         if (address != null && Address != address)
         {
-            _stats.Add(Statistics.AddStatistics(Id.Value, this.GetType().Name, Statistics.Level.FINE, Statistics.Action.UPDATE, $"Адрес изменен с {Address} на {address}"));
+            _stats.Add(Statistica.AddStatistics(Id.Value, this.GetType().Name, Statistica.Level.FINE, Statistica.Action.UPDATE, $"Адрес изменен с {Address} на {address}"));
             Address = address;
 
             result = true;

@@ -9,9 +9,9 @@ namespace DirectoryService.Domain.shared;
 /// Не привязана ни к одной таблице, не должна удаляться автоматически. Очистка записей статистики должна определяться внутренними регламентами
 /// (например, удаление записей статистики, относящихся к удалённым объектам через год после удаления)
 /// </summary>
-internal class Statistics
+public sealed class Statistica
 {
-    private Statistics(
+    private Statistica(
         Guid id, 
         Guid objectId, 
         string objectTypeName, 
@@ -85,7 +85,7 @@ internal class Statistics
     /// <param name="parentTypeName"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public static Statistics AddStatistics(
+    public static Statistica AddStatistics(
         Guid objectId, 
         string objectTypeName, 
         Level level, 
@@ -102,7 +102,7 @@ internal class Statistics
                 case Action.DETACH:
                     throw new ArgumentNullException("parentId", "Для операции \"Отсоединить\" не заданы параметры родительского объекта");
             }
-        return new Statistics(
+        return new Statistica(
             Guid.CreateVersion7(), 
             objectId, 
             objectTypeName, 
@@ -124,7 +124,7 @@ internal class Statistics
     /// <param name="action"></param>
     /// <param name="description"></param>
     /// <returns></returns>
-    public static Statistics AddStatistics(
+    public static Statistica AddStatistics(
         Guid objectId, 
         string objectTypeName, 
         Level level, 

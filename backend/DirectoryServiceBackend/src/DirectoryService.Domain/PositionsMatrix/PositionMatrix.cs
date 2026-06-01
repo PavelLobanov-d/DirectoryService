@@ -9,7 +9,7 @@ namespace DirectoryService.Domain.PositionsMatrix;
 /// <summary>
 /// определяет матричную должность и структуру подчинения. Применяется ко всем департаментам
 /// </summary>
-internal class PositionMatrix
+public sealed class PositionMatrix
 {
     private PositionMatrix(
         PositionMatrixId id, 
@@ -58,7 +58,7 @@ internal class PositionMatrix
     /// <summary>
     /// коллекция записей статистики для сохранения
     /// </summary>
-    private readonly List<Statistics> _stats = [];
+    private readonly List<Statistica> _stats = [];
 
     /// <summary>
     /// добавить матричную должность
@@ -81,20 +81,20 @@ internal class PositionMatrix
             parent?.PathSlugFull);
         newObject._parent = parent;
 
-        newObject._stats.Add(Statistics.AddStatistics(
+        newObject._stats.Add(Statistica.AddStatistics(
             newObject.Id.Value, 
             newObject.GetType().Name, 
-            Statistics.Level.INFO, 
-            Statistics.Action.CREATE, 
+            Statistica.Level.INFO, 
+            Statistica.Action.CREATE, 
             $"Создание матричной должности {newObject.Name}"));
         if(parent != null)
         {
             parent._childs.Add(newObject);
-            newObject._stats.Add(Statistics.AddStatistics(
+            newObject._stats.Add(Statistica.AddStatistics(
                 newObject.Id.Value, 
                 newObject.GetType().Name, 
-                Statistics.Level.INFO, 
-                Statistics.Action.ATTACH, 
+                Statistica.Level.INFO, 
+                Statistica.Action.ATTACH, 
                 $"Родительская должность: {parent.Name}"));
         }
 
@@ -119,11 +119,11 @@ internal class PositionMatrix
         {
             _parent._childs.Remove(this);
 
-            _stats.Add(Statistics.AddStatistics(
+            _stats.Add(Statistica.AddStatistics(
                 Id.Value, 
                 this.GetType().Name, 
-                Statistics.Level.INFO, 
-                Statistics.Action.DETACH, 
+                Statistica.Level.INFO, 
+                Statistica.Action.DETACH, 
                 $"Отсоединён от {PathSlug}", 
                 _parent.Id.Value, 
                 _parent.GetType().Name));
@@ -135,11 +135,11 @@ internal class PositionMatrix
             PathSlug = newParent.PathSlugFull;
             newParent._childs.Add(this);
 
-            _stats.Add(Statistics.AddStatistics(
+            _stats.Add(Statistica.AddStatistics(
                 Id.Value, 
                 this.GetType().Name, 
-                Statistics.Level.INFO, 
-                Statistics.Action.ATTACH, 
+                Statistica.Level.INFO, 
+                Statistica.Action.ATTACH, 
                 $"Присоединён к {newParent.PathSlugFull}", 
                 newParent.Id.Value, 
                 newParent.GetType().Name));
@@ -164,11 +164,11 @@ internal class PositionMatrix
             if (PathSlug != _parent.PathSlugFull)
             {
                 PathSlug = _parent.PathSlugFull;
-                _stats.Add(Statistics.AddStatistics(
+                _stats.Add(Statistica.AddStatistics(
                     Id.Value, 
                     this.GetType().Name, 
-                    Statistics.Level.FINEST, 
-                    Statistics.Action.UPDATE, 
+                    Statistica.Level.FINEST, 
+                    Statistica.Action.UPDATE, 
                     $"Переподчинение {PathSlug}"));
                 result = true;
             }
@@ -180,11 +180,11 @@ internal class PositionMatrix
                 ParentId = null;
                 if (PathSlug != null)
                 {
-                    _stats.Add(Statistics.AddStatistics(
+                    _stats.Add(Statistica.AddStatistics(
                         Id.Value, 
                         this.GetType().Name, 
-                        Statistics.Level.FINEST, 
-                        Statistics.Action.UPDATE, 
+                        Statistica.Level.FINEST, 
+                        Statistica.Action.UPDATE, 
                         $"Становится корневым"));
                 }
                 result = true;
@@ -213,22 +213,22 @@ internal class PositionMatrix
         if (name != null && Name != name)
         {
             validationName(name);
-            _stats.Add(Statistics.AddStatistics(
+            _stats.Add(Statistica.AddStatistics(
                 Id.Value, 
                 this.GetType().Name, 
-                Statistics.Level.INFO, 
-                Statistics.Action.UPDATE, 
+                Statistica.Level.INFO, 
+                Statistica.Action.UPDATE, 
                 $"Название изменено с {Name} на {name}"));
             Name = name;
             result = true;
         }
         if (slug != null && Slug != slug)
         {
-            _stats.Add(Statistics.AddStatistics(
+            _stats.Add(Statistica.AddStatistics(
                 Id.Value, 
                 this.GetType().Name, 
-                Statistics.Level.INFO, 
-                Statistics.Action.UPDATE, 
+                Statistica.Level.INFO, 
+                Statistica.Action.UPDATE, 
                 $"Идентификатор изменен с {Slug} на {slug}"));
             Slug = slug;
 
@@ -255,11 +255,11 @@ internal class PositionMatrix
         {
             throw new DSException("Сначала необходимо удалить зависимые матричные должности");
         }
-        _stats.Add(Statistics.AddStatistics(
+        _stats.Add(Statistica.AddStatistics(
             Id.Value, 
             this.GetType().Name, 
-            Statistics.Level.INFO, 
-            Statistics.Action.DELETE, 
+            Statistica.Level.INFO, 
+            Statistica.Action.DELETE, 
             $"Удаление: {Name}"));
 
         if(_parent != null)

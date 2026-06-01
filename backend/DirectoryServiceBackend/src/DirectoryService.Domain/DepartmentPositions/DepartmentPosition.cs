@@ -7,7 +7,7 @@ using System.Text;
 
 namespace DirectoryService.Domain.DepartmentPositions;
 
-internal class DepartmentPosition
+public sealed class DepartmentPosition
 {
     private DepartmentPosition(
         DepartmentPositionId id, 
