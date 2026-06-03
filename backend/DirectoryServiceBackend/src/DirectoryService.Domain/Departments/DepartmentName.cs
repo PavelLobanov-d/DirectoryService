@@ -12,6 +12,7 @@ public record DepartmentName
 
     public string Value { get; } = string.Empty;
 
+    private DepartmentName() { }
     private DepartmentName(string value)
     {
         Value = value;

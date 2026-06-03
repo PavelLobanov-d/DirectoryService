@@ -10,6 +10,7 @@ public sealed record PathSlug
 
     public string Value { get; }
 
+    private PathSlug() { }
     private PathSlug(string value)
     {
         Value = value;
