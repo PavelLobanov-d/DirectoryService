@@ -121,7 +121,12 @@ public sealed class Department
             parent,
             objectDP);
 
-        newObject._stats.Add(Statistica.AddStatistics(newObject.Id.Value, newObject.GetType().Name, Statistica.Level.INFO, Statistica.Action.CREATE, $"Создание департамента {newObject.Name}"));
+        newObject._stats.Add(Statistica.AddStatistics(
+            newObject.Id.Value, 
+            newObject.GetType().Name, 
+            Statistica.Level.INFO, 
+            Statistica.Action.CREATE, 
+            $"Создание департамента {newObject.Name}"));
 
         newObject._parent = parent;
         if (parent != null)
@@ -173,6 +178,14 @@ public sealed class Department
     /// <exception cref="DSException"></exception>
     public DepartmentLocation LinkLocation(Location location)
     {
+        foreach (DepartmentLocation loc in _departmentLocations)
+        {
+            if (loc.Location.Id == location.Id)
+            {
+                throw new DSException("Дублирование связи с локацией");
+            }
+        }
+
         DepartmentLocation newLink = new DepartmentLocation(this, location);
         this._departmentLocations.Add(newLink);
         _stats.Add(Statistica.AddStatistics(

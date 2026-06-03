@@ -32,14 +32,35 @@ var app = builder.Build();
 
 app.MapPost("/starttest", async (DirectoryServiceDbContext db) =>
 {
+    //локация
     Location location = db.Locations.Add(Location.Create(LocationName.Create("Локация1"), Address.Create("На деревню, Дедушке"))).Entity;
+ 
+    //головная должность
     PositionMatrix posCEO = db.PositionsMatrix.Add(PositionMatrix.Create(PositionName.Create("Ген. директор"), Slug.Create("ceo"), parent: null)).Entity;
+    //головной департамент
     Department departmentCEO = db.Departments.Add(Department.Create(id: null, DepartmentName.Create("Аппарат ген.дира"), Slug.Create("director"), parent: null, posCEO)).Entity;
-    DepartmentLocation departmentLocation = db.DepartmentLocations.Add(DepartmentLocation.Create(departmentCEO, location)).Entity;
+    //при создании департамента автоматом создаётся связка с должностью начальника
+    db.DepartmentPositions.Add(departmentCEO.ChiefDepartmentPosition);
+    db.DepartmentLocations.Add(departmentCEO.LinkLocation(location));
 
+    //второстепенная должность
+    PositionMatrix posAssist = db.PositionsMatrix.Add(PositionMatrix.Create(PositionName.Create("Помощник"), Slug.Create("assist"), posCEO)).Entity;
+    //количество одинаковых должностей в департаменте не ограничено (Помощник по общим, Помощник по орг ...)
+    db.DepartmentPositions.Add(departmentCEO.LinkPosition(posAssist));
+    db.DepartmentPositions.Add(departmentCEO.LinkPosition(posAssist));
+
+    //должность нач.второстепенного департамента
     PositionMatrix posDep11 = db.PositionsMatrix.Add(PositionMatrix.Create(PositionName.Create("Начальник службы безопасности"), Slug.Create("chiefgbr"), posCEO)).Entity;
+    //второстепенный департамент
     Department department11 = db.Departments.Add(Department.Create(id: null, DepartmentName.Create("Служба безопасности"), Slug.Create("gbr"), departmentCEO, posDep11)).Entity;
-    departmentLocation = db.DepartmentLocations.Add(DepartmentLocation.Create(department11, location)).Entity;
+    db.DepartmentPositions.Add(department11.ChiefDepartmentPosition);
+    db.DepartmentLocations.Add(department11.LinkLocation(location));
+
+    //третьестепенные должности
+    PositionMatrix posGuard = db.PositionsMatrix.Add(PositionMatrix.Create(PositionName.Create("Охранник"), Slug.Create("guard"), posDep11)).Entity;
+    db.DepartmentPositions.Add(department11.LinkPosition(posGuard));
+    db.DepartmentPositions.Add(department11.LinkPosition(posGuard));
+    db.DepartmentPositions.Add(department11.LinkPosition(posGuard));
 
     await db.SaveChangesAsync().ConfigureAwait(true);
 });
