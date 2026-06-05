@@ -86,14 +86,14 @@ public sealed class Statistica
     /// <param name="parentTypeName"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public static Statistica AddStatistics(
-        Guid objectId, 
-        string objectTypeName, 
-        Level level, 
-        Action action, 
-        string description, 
-        Guid? parentId, 
-        string? parentTypeName)
+    public static Statistica Create(
+        Guid objectId,
+        string objectTypeName,
+        Level level,
+        Action action,
+        string description,
+        Guid? parentId = null,
+        string? parentTypeName = null)
     {
         if (parentId == null || parentTypeName == null)
             switch (action)
@@ -116,33 +116,6 @@ public sealed class Statistica
             parentTypeName);
     }
 
-    /// <summary>
-    /// добавить запись статистики
-    /// </summary>
-    /// <param name="objectId"></param>
-    /// <param name="objectTypeName"></param>
-    /// <param name="level"></param>
-    /// <param name="action"></param>
-    /// <param name="description"></param>
-    /// <returns></returns>
-    public static Statistica AddStatistics(
-        Guid objectId, 
-        string objectTypeName, 
-        Level level, 
-        Action action, 
-        string description)
-    {
-        return AddStatistics(
-            objectId, 
-            objectTypeName, 
-            level, 
-            action, 
-            description, 
-            null, 
-            null);
-    }
-
- 
     /// <summary>
     /// Уровни статистики для фильтрации отображения
     /// </summary>

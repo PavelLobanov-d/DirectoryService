@@ -1,4 +1,7 @@
-﻿using DirectoryService.Domain.shared;
+﻿using DirectoryService.Domain.DepartmentChiefPositions;
+using DirectoryService.Domain.DepartmentPositions;
+using DirectoryService.Domain.GlobalStatisticsClass;
+using DirectoryService.Domain.shared;
 using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
@@ -56,10 +59,12 @@ public sealed class PositionMatrix
     /// потомки
     /// </summary>
     public IReadOnlyList<PositionMatrix> Childs => _childs;
-    /// <summary>
-    /// коллекция записей статистики для сохранения
-    /// </summary>
-    private readonly List<Statistica> _stats = [];
+
+    private readonly List<DepartmentPosition> _departmentPositions = [];
+    public IReadOnlyList<DepartmentPosition> DepartmentPositions => _departmentPositions;
+
+    private readonly List<DepartmentChiefPosition> _departmentChiefPositions = [];
+    public IReadOnlyList<DepartmentChiefPosition> DepartmentChiefPositions => _departmentChiefPositions;
 
     /// <summary>
     /// добавить матричную должность
@@ -72,7 +77,8 @@ public sealed class PositionMatrix
     public static PositionMatrix Create(
         PositionName name, 
         Slug slug, 
-        PositionMatrix? parent)
+        PositionMatrix? parent,
+        GlobalStatistics globalstats)
     {
         PositionMatrix newObject = new PositionMatrix(
             new PositionMatrixId(Guid.CreateVersion7()), 
@@ -82,21 +88,24 @@ public sealed class PositionMatrix
             parent?.PathSlugFull);
         newObject._parent = parent;
 
-        newObject._stats.Add(Statistica.AddStatistics(
+        globalstats.AddStatistica(
             newObject.Id.Value, 
             newObject.GetType().Name, 
             Statistica.Level.INFO, 
             Statistica.Action.CREATE, 
-            $"Создание матричной должности {newObject.Name}"));
+            $"Создание матричной должности {newObject.Name.Value}");
+
         if(parent != null)
         {
             parent._childs.Add(newObject);
-            newObject._stats.Add(Statistica.AddStatistics(
+            globalstats.AddStatistica(
                 newObject.Id.Value, 
                 newObject.GetType().Name, 
                 Statistica.Level.INFO, 
                 Statistica.Action.ATTACH, 
-                $"Родительская должность: {parent.Name}"));
+                $"Родительская должность: {parent.Name.Value}",
+                parent.Id.Value,
+                parent.GetType().Name);
         }
 
         return newObject;
@@ -107,7 +116,9 @@ public sealed class PositionMatrix
     /// </summary>
     /// <param name="newParent"></param>
     /// <returns>true, если были изменения</returns>
-    public bool Move(PositionMatrix? newParent)
+    public bool Move(
+        PositionMatrix? newParent,
+        GlobalStatistics globalstats)
     {
         //надо сделать пересчёт частных должностей, привязанных к этой матричной
 
@@ -120,14 +131,14 @@ public sealed class PositionMatrix
         {
             _parent._childs.Remove(this);
 
-            _stats.Add(Statistica.AddStatistics(
+            globalstats.AddStatistica(
                 Id.Value, 
-                this.GetType().Name, 
-                Statistica.Level.INFO, 
-                Statistica.Action.DETACH, 
-                $"Отсоединён от {PathSlug}", 
-                _parent.Id.Value, 
-                _parent.GetType().Name));
+                this.GetType().Name,
+                Statistica.Level.INFO,
+                Statistica.Action.DETACH,
+                $"Отсоединён от {PathSlug.Value}",
+                _parent.Id.Value,
+                _parent.GetType().Name);
         }
 
         if(newParent != null)
@@ -136,18 +147,18 @@ public sealed class PositionMatrix
             PathSlug = newParent.PathSlugFull;
             newParent._childs.Add(this);
 
-            _stats.Add(Statistica.AddStatistics(
+            globalstats.AddStatistica(
                 Id.Value, 
                 this.GetType().Name, 
                 Statistica.Level.INFO, 
                 Statistica.Action.ATTACH, 
-                $"Присоединён к {newParent.PathSlugFull}", 
+                $"Присоединён к {newParent.PathSlugFull.Value}", 
                 newParent.Id.Value, 
-                newParent.GetType().Name));
+                newParent.GetType().Name);
         }
 
         _parent = newParent;
-        return refresh();
+        return refresh(globalstats);
     }
 
 
@@ -155,7 +166,7 @@ public sealed class PositionMatrix
     /// пересчёт матричной должности
     /// </summary>
     /// <returns>true, если были изменения</returns>
-    private bool refresh()
+    private bool refresh(GlobalStatistics globalstats)
     {
         bool result = false;
 
@@ -165,12 +176,12 @@ public sealed class PositionMatrix
             if (PathSlug != _parent.PathSlugFull)
             {
                 PathSlug = _parent.PathSlugFull;
-                _stats.Add(Statistica.AddStatistics(
+                globalstats.AddStatistica(
                     Id.Value, 
                     this.GetType().Name, 
                     Statistica.Level.FINEST, 
                     Statistica.Action.UPDATE, 
-                    $"Переподчинение {PathSlug}"));
+                    $"Переподчинение {PathSlug.Value}");
                 result = true;
             }
         }
@@ -181,12 +192,12 @@ public sealed class PositionMatrix
                 ParentId = null;
                 if (PathSlug != null)
                 {
-                    _stats.Add(Statistica.AddStatistics(
+                    globalstats.AddStatistica(
                         Id.Value, 
                         this.GetType().Name, 
                         Statistica.Level.FINEST, 
                         Statistica.Action.UPDATE, 
-                        $"Становится корневым"));
+                        $"Становится корневым");
                 }
                 result = true;
             }
@@ -195,7 +206,7 @@ public sealed class PositionMatrix
 
         if (_childs != null && _childs.Select(child =>
             {
-                bool v = child.refresh();
+                bool v = child.refresh(globalstats);
                 return v;
             }).Contains(true))
             result = true;
@@ -208,34 +219,36 @@ public sealed class PositionMatrix
     /// <param name="name"></param>
     /// <param name="slug"></param>
     /// <returns>true, если были изменения</returns>
-    public bool Update(PositionName? name, Slug? slug)
+    public bool Update(PositionName? name,
+        Slug? slug,
+        GlobalStatistics globalstats)
     {
         bool result = false;
         if (name != null && Name != name)
         {
             validationName(name);
-            _stats.Add(Statistica.AddStatistics(
+            globalstats.AddStatistica(
                 Id.Value, 
                 this.GetType().Name, 
                 Statistica.Level.INFO, 
                 Statistica.Action.UPDATE, 
-                $"Название изменено с {Name} на {name}"));
+                $"Название изменено с {Name.Value} на {name.Value}");
             Name = name;
             result = true;
         }
         if (slug != null && Slug != slug)
         {
-            _stats.Add(Statistica.AddStatistics(
+            globalstats.AddStatistica(
                 Id.Value, 
                 this.GetType().Name, 
                 Statistica.Level.INFO, 
                 Statistica.Action.UPDATE, 
-                $"Идентификатор изменен с {Slug} на {slug}"));
+                $"Идентификатор изменен с {Slug.Value} на {slug.Value}");
             Slug = slug;
 
             if (_childs != null && _childs.Select(child =>
             {
-                bool v = child.refresh();
+                bool v = child.refresh(globalstats);
                 return v;
             }).Contains(true))
                 result = true;
@@ -248,7 +261,7 @@ public sealed class PositionMatrix
     /// </summary>
     /// <returns>true, если были изменения</returns>
     /// <exception cref="Exception"></exception>
-    public bool Delete()
+    public bool Delete(GlobalStatistics globalstats)
     {
         //надо сделать проверку на существование частных должностей к этой матричной. Потом
 
@@ -256,12 +269,12 @@ public sealed class PositionMatrix
         {
             throw new DSException("Сначала необходимо удалить зависимые матричные должности");
         }
-        _stats.Add(Statistica.AddStatistics(
+        globalstats.AddStatistica(
             Id.Value, 
             this.GetType().Name, 
             Statistica.Level.INFO, 
             Statistica.Action.DELETE, 
-            $"Удаление: {Name}"));
+            $"Удаление: {Name}");
 
         if(_parent != null)
             _parent.Childs?.ToList().Remove(this);
@@ -302,6 +315,11 @@ public sealed class PositionMatrix
         }
         return false;
     }
+    /// <summary>
+    /// проверяет, является ли должность position родителем этой
+    /// </summary>
+    /// <param name="position"></param>
+    /// <returns></returns>
     public bool isParent(PositionMatrix position)
     {
         return isParent(position.Id);
