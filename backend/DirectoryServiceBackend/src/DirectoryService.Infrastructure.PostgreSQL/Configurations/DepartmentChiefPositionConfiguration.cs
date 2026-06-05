@@ -28,9 +28,9 @@ internal class DepartmentChiefPositionConfiguration : IEntityTypeConfiguration<D
             .IsRequired()
             .HasColumnName("positionmatrix_id");
 
-        builder.HasOne<Department>()
+        builder.HasOne(dcp => dcp.Department)
             .WithOne(d => d.DepartmentChiefPosition)
-            .HasForeignKey<DepartmentChiefPosition>(cp => cp.DepartmentId)
+            .HasForeignKey<DepartmentChiefPosition>(dcp => dcp.DepartmentId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
