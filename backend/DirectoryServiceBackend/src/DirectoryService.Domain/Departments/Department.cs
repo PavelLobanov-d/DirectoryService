@@ -1,14 +1,15 @@
-﻿using DirectoryService.Domain.DepartmentLocations;
+﻿using DirectoryService.Domain.DepartmentChiefPositions;
+using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.DepartmentPositions;
-using DirectoryService.Domain.DepartmentChiefPositions;
+using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.shared;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryService.Domain.Departments;
 
@@ -249,37 +250,51 @@ public sealed class Department
     /// <param name="name"></param>
     /// <param name="slug"></param>
     /// <returns>true, если были изменения</returns>
-    public bool Update(DepartmentName? name,
-        Slug? slug,
+    public bool Update(DepartmentName? newName,
+        Slug? newSlug,
+        PositionMatrix? newChiefPosition,
         GlobalStatistics globalstats)
     {
         bool result = false;
-        if (name != null && Name != name)
+        if (newName != null && newName != Name)
         {
             globalstats.AddStatistica(
                 Id.Value, 
                 this.GetType().Name, 
                 Statistica.Level.FINE, 
                 Statistica.Action.UPDATE, 
-                $"Название изменено с {Name.Value} на {name.Value}");
-            Name = name;
+                $"Название изменено с {Name.Value} на {newName.Value}");
+            Name = newName;
             result = true;
         }
-        if (slug != null && Slug != slug)
+        if (newSlug != null && newSlug != Slug)
         {
             globalstats.AddStatistica(
                 Id.Value, 
                 this.GetType().Name, 
                 Statistica.Level.FINE, 
                 Statistica.Action.UPDATE, 
-                $"Идентификатор изменен с {Slug.Value} на {slug.Value}");
-            Slug = slug;
+                $"Идентификатор изменен с {Slug.Value} на {newSlug.Value}");
+            Slug = newSlug;
             if (Childs != null && Childs.Select(child =>
             {
                 bool v = child.refresh(globalstats);
                 return v;
             }).Contains(true))
                 result = true;
+        }
+        if (newChiefPosition != null && newChiefPosition.Id != ChiefPositionMatrix.Id)
+        {
+            globalstats.AddStatistica(
+                Id.Value,
+                this.GetType().Name,
+                Statistica.Level.FINE,
+                Statistica.Action.UPDATE,
+                $"Должность руководителя изменена с {DepartmentChiefPosition.PositionMatrix.Name} на {newChiefPosition.Name}");
+
+            DepartmentChiefPosition objectDP = DepartmentChiefPosition.Create(this, newChiefPosition);
+            this.DepartmentChiefPosition.Delete();
+            this.DepartmentChiefPosition = objectDP;
         }
 
         return result;

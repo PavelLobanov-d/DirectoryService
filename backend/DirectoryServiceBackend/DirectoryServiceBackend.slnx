@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Controllers/DirectoryService.Controllers.csproj" Id="659e2bcd-b6db-48b7-8173-c502540d243e" />
     <Project Path="src/DirectoryService.Contracts/DirectoryService.Contracts.csproj" />
     <Project Path="src/DirectoryService.Core/DirectoryService.Core.csproj" />
     <Project Path="src/DirectoryService.Domain/DirectoryService.Domain.csproj" />

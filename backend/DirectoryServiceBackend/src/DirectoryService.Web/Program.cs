@@ -42,6 +42,9 @@ if(!app.Environment.IsProduction())
     app.MapScalarApiReference();
 }
 
+app.MapGet("/guid", () => $"{(Guid.CreateVersion7())}");
+
+
 app.MapGet("/starttest", async (DirectoryServiceDbContext db, GlobalStatistics globalStatistics) =>
 {
     //локация

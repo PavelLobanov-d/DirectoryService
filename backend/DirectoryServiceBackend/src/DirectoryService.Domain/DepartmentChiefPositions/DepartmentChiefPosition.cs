@@ -38,6 +38,8 @@ public sealed class DepartmentChiefPosition
         return new DepartmentChiefPosition(department, positionMatrix);
     }
 
+    public void Delete() { }
+
     private DepartmentChiefPosition(
         Department department,
         PositionMatrix positionMatrix)
