@@ -1,6 +1,6 @@
 ﻿using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.GlobalStatisticsClass;
-using DirectoryService.Domain.shared;
+using DirectoryService.Domain.Statistics;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -20,25 +20,19 @@ public sealed class Location
         Name = name;
         Address = address;
     }
-    public LocationId Id { get; private set; }
-    public LocationName Name { get; private set; }
-    public Address Address { get; private set; }
+    public LocationId Id { get; private set; } = null!;
+    public LocationName Name { get; private set; } = null!;
+    public Address Address { get; private set; } = null!;
 
     private readonly List<DepartmentLocation> _departmentLocations = [];
     public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;
 
     public static Location Create(
         LocationName name, 
-        Address address,
-        GlobalStatistics globalstats)
+        Address address)
     {
         Location newObject = new(new LocationId(Guid.CreateVersion7()), name, address);
-        globalstats.AddStatistica(newObject.Id.Value,
-            newObject.GetType().Name,
-            Statistica.Level.INFO,
-            Statistica.Action.CREATE,
-            $"Создание локации {newObject.Name}");
-
+       
         return newObject;
     }
 

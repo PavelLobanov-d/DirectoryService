@@ -4,6 +4,7 @@ using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
 using DirectoryService.Infrastructure.PostgreSQL;
+using DirectoryService.Web;
 using dotenv.net;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -20,9 +21,7 @@ if (connectionString == null)
 }
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddOpenApi();
-builder.Services.AddControllers();
-builder.Services.AddHealthChecks();
+builder.Services.AddProgramDependencies();
 builder.Services.AddScoped<GlobalStatistics>();
 builder.Services.AddScoped<DirectoryServiceDbContext>(_ => new DirectoryServiceDbContext(connectionString));
 //builder.Services.AddDbContext<DirectoryServiceDbContext>(options =>
@@ -48,7 +47,7 @@ app.MapGet("/guid", () => $"{(Guid.CreateVersion7())}");
 app.MapGet("/starttest", async (DirectoryServiceDbContext db, GlobalStatistics globalStatistics) =>
 {
     //локация
-    Location location = db.Locations.Add(Location.Create(LocationName.Create("Локация1"), Address.Create("На деревню, Дедушке"), globalStatistics)).Entity;
+    Location location = db.Locations.Add(Location.Create(LocationName.Create("Локация1"), Address.Create("На деревню, Дедушке"))).Entity;
 
     //головная должность
     PositionMatrix posCEO = db.PositionsMatrix.Add(PositionMatrix.Create(PositionName.Create("Ген. директор"), Slug.Create("ceo"), parent: null, globalStatistics)).Entity;
@@ -83,4 +82,3 @@ app.MapGet("/starttest", async (DirectoryServiceDbContext db, GlobalStatistics g
 });
 
 await app.RunAsync().ConfigureAwait(false);
-//app.Run();

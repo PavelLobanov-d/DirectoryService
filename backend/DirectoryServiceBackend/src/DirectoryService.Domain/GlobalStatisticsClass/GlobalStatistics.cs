@@ -1,5 +1,5 @@
-﻿using DirectoryService.Domain.shared;
-using static DirectoryService.Domain.shared.Statistica;
+﻿using DirectoryService.Domain.Statistics;
+using static DirectoryService.Domain.Statistics.Statistica;
 
 namespace DirectoryService.Domain.GlobalStatisticsClass;
 

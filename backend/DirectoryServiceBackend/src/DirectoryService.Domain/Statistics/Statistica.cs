@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DirectoryService.Domain.shared;
+namespace DirectoryService.Domain.Statistics;
 
 /// <summary>
 /// Статистика изменения состояния объекта. Предназначена для "разбора полётов", вывода по запросу пользователя по уровню детализации.
@@ -121,22 +121,52 @@ public sealed class Statistica
     /// </summary>
     public enum Level
     {
+        /// <summary>
+        /// общая информация
+        /// </summary>
         INFO = 10,
+        /// <summary>
+        /// подробная информация
+        /// </summary>
         FINE = 20,
+        /// <summary>
+        /// ещё более подробная информация
+        /// </summary>
         FINEST = 30,
+        /// <summary>
+        /// информация для администраторов
+        /// </summary>
         SYSTEM = 99
     }
 
     /// <summary>
-    /// Типовые действия
+    /// Типовые события
     /// </summary>
     public enum Action
     {
+        /// <summary>
+        /// при создании объекта
+        /// </summary>
         CREATE = 10,
+        /// <summary>
+        /// при изменении объекта
+        /// </summary>
         UPDATE = 20,
+        /// <summary>
+        /// при присоединении объекта
+        /// </summary>
         ATTACH = 30,
+        /// <summary>
+        /// при отсоединении объекта
+        /// </summary>
         DETACH = 40,
+        /// <summary>
+        /// при удалении объекта
+        /// </summary>
         DELETE = 50,
+        /// <summary>
+        /// прочие события
+        /// </summary>
         OTHER = 100
     }
 }

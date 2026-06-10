@@ -12,7 +12,7 @@ public record LocationName
     public string Value { get; } = string.Empty;
 
     private LocationName() { }
-    private LocationName(string value)
+    public LocationName(string value)
     {
         Value = value;
     }
