@@ -22,36 +22,39 @@ public class LocationController : ControllerBase
         CancellationToken cancellationToken)
     {
         var locationId = await _locationsService.CreateAsync(request, cancellationToken).ConfigureAwait(false);
-        return Ok($"Location.CreateAsync : {locationId}");
+        return Ok($"Location.Create : {locationId}");
     }
     [HttpGet]
-    public async Task<IActionResult> Get(
+    public async Task<IActionResult> GetAsync(
         [FromQuery] GetLocationsDto request,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.Get");
+        var locations = await _locationsService.GetAsync(request, cancellationToken).ConfigureAwait(false);
+        return Ok($"Location.Get : {locations.Count}");
     }
     [HttpGet("{locationId:guid}")]
     public async Task<IActionResult> GetByIdAsync(
-        [FromRoute] Guid requestId,
+        [FromRoute] Guid locationId,
         CancellationToken cancellationToken)
     {
-        var location = await _locationsService.GetByIdAsync(requestId, cancellationToken).ConfigureAwait(false);
+        var location = await _locationsService.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
         return Ok($"Location.GetByIdAsync : {location.Id}");
     }
     [HttpPut("{locationId:guid}")]
-    public async Task<IActionResult> Update(
+    public async Task<IActionResult> UpdateAsync(
         [FromRoute] Guid requestId,
         [FromBody] UpdateLocationDto request,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.Update");
+        bool result = await _locationsService.UpdateAsync(request, cancellationToken).ConfigureAwait(false);
+        return Ok($"Location.Update : {result}");
     }
     [HttpDelete("{locationId:guid}")]
-    public async Task<IActionResult> Delete(
-        [FromRoute] Guid requestId,
+    public async Task<IActionResult> DeleteAsync(
+        [FromRoute] Guid locationId,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.Delete");
+        bool result = await _locationsService.DeleteAsync(locationId, cancellationToken).ConfigureAwait(false);
+        return Ok($"Location.Delete : {result}");
     }
 }

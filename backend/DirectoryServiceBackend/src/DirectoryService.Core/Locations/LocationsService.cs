@@ -112,6 +112,18 @@ public class LocationsService: ILocationsService
         return location;
     }
     /// <summary>
+    /// получить коллекцию локаций по условию
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public async Task<List<Location>> GetAsync(GetLocationsDto request, CancellationToken cancellationToken)
+    {
+        var locations = await _locationsRepository.GetAsync(request, cancellationToken).ConfigureAwait(false);
+        return locations;
+    }
+
+    /// <summary>
     /// обновление локации
     /// </summary>
     /// <param name="locationDto"></param>

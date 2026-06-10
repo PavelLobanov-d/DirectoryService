@@ -1,4 +1,5 @@
-﻿using DirectoryService.Domain.Locations;
+﻿using DirectoryService.Contracts.Locations;
+using DirectoryService.Domain.Locations;
 
 namespace DirectoryService.Core.Locations;
 
@@ -32,6 +33,13 @@ public interface ILocationsRepository
     /// <param name="cancellationToken"></param>
     /// <returns>объект Location</returns>
     Task<Location> GetByIdAsync(Guid locationId, CancellationToken cancellationToken);
+    /// <summary>
+    /// получить коллекцию локаций, отвечающую условию
+    /// </summary>
+    /// <param name="request"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<List<Location>> GetAsync(GetLocationsDto request, CancellationToken cancellationToken);
     /// <summary>
     /// есто ли локация с именем
     /// </summary>

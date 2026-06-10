@@ -5,4 +5,3 @@ using System.Text;
 namespace DirectoryService.Contracts.Statistics;
 
 public record GetStatisticsByParentIdDto(Guid parentId, int? level);
-
