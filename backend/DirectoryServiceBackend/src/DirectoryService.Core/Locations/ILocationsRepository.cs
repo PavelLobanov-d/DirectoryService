@@ -40,11 +40,4 @@ public interface ILocationsRepository
     /// <param name="cancellationToken"></param>
     /// <returns>true, если существует</returns>
     Task<bool> HasNameAsync(string name, Guid? excludeId, CancellationToken cancellationToken);
-    /// <summary>
-    /// изменить локацию
-    /// </summary>
-    /// <param name="location">объект Location</param>
-    /// <param name="cancellationToken"></param>
-    /// <returns>true, если изменение произошло</returns>
-    Task<bool> UpdateAsync(Location location, CancellationToken cancellationToken);
 }

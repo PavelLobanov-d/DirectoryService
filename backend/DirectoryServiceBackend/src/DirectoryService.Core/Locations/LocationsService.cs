@@ -54,6 +54,7 @@ public class LocationsService: ILocationsService
         }
 
         var location = Location.Create(new LocationName(locationDto.Name), new Address(locationDto.Address));
+        await _locationsRepository.AddAsync(location, cancellationToken).ConfigureAwait(false);
 
         _globalstats.AddStatistica(
             location.Id.Value,
@@ -139,31 +140,42 @@ public class LocationsService: ILocationsService
             return false;
 
         var location = await _locationsRepository.GetByIdAsync(locationDto.locationId, cancellationToken).ConfigureAwait(false);
-        if (location != null && await _locationsRepository.UpdateAsync(location, cancellationToken).ConfigureAwait(false))
+        if (location != null)
         {
+            LocationName? name = null;
             if (locationDto.NewName != null)
-            {
-                _globalstats.AddStatistica(
-                    location.Id.Value,
-                    location.GetType().Name,
-                    Statistica.Level.INFO,
-                    Statistica.Action.UPDATE,
-                    $"Изменение имени на {location.Name}");
-
-                _logger.LogInformation("Change name of location {1} : {2}", location.Id.Value, location.Name.Value);
-            }
+                name = new LocationName(locationDto.NewName);
+            Address? address = null;
             if (locationDto.NewAddress != null)
-            {
-                _globalstats.AddStatistica(
-                    location.Id.Value,
-                    location.GetType().Name,
-                    Statistica.Level.INFO,
-                    Statistica.Action.UPDATE,
-                    $"Изменение адреса на {location.Address}");
+                address = new Address(locationDto.NewAddress);
 
-                _logger.LogInformation("Change address of location {1} : {2}", location.Id.Value, location.Address.Value);
+            if (location.Update(name, address)
+            && await _locationsRepository.SaveAsync(location, cancellationToken).ConfigureAwait(false))
+            {
+                if (locationDto.NewName != null)
+                {
+                    _globalstats.AddStatistica(
+                        location.Id.Value,
+                        location.GetType().Name,
+                        Statistica.Level.INFO,
+                        Statistica.Action.UPDATE,
+                        $"Изменение имени на {location.Name}");
+
+                    _logger.LogInformation("Change name of location {1} : {2}", location.Id.Value, location.Name.Value);
+                }
+                if (locationDto.NewAddress != null)
+                {
+                    _globalstats.AddStatistica(
+                        location.Id.Value,
+                        location.GetType().Name,
+                        Statistica.Level.INFO,
+                        Statistica.Action.UPDATE,
+                        $"Изменение адреса на {location.Address}");
+
+                    _logger.LogInformation("Change address of location {1} : {2}", location.Id.Value, location.Address.Value);
+                }
+                return true;
             }
-            return true;
         }
         return false;
     }

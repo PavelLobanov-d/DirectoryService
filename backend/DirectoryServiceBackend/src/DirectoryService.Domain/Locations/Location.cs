@@ -44,29 +44,17 @@ public sealed class Location
     /// <returns>true, если были изменения</returns>
     public bool Update(
         LocationName? name, 
-        Address? address,
-        GlobalStatistics globalstats)
+        Address? address)
     {
         bool result = false;
         if (name != null && Name != name)
         {
-            globalstats.AddStatistica(Id.Value,
-                this.GetType().Name,
-                Statistica.Level.FINE,
-                Statistica.Action.UPDATE,
-                $"Название изменено с {Name} на {name}");
             Name = name;
             result = true;
         }
         if (address != null && Address != address)
         {
-            globalstats.AddStatistica(Id.Value,
-                this.GetType().Name,
-                Statistica.Level.FINE,
-                Statistica.Action.UPDATE,
-                $"Адрес изменен с {Address} на {address}");
             Address = address;
-
             result = true;
         }
 
