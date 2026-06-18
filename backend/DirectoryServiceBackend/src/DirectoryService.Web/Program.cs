@@ -47,7 +47,10 @@ app.MapGet("/guid", () => $"{(Guid.CreateVersion7())}");
 app.MapGet("/starttest", async (DirectoryServiceDbContext db, GlobalStatistics globalStatistics) =>
 {
     //локация
-    Location location = db.Locations.Add(Location.Create(LocationName.Create("Локация1"), Address.Create("На деревню, Дедушке"))).Entity;
+    var resultName = LocationName.Create("Локация1");
+    var resultAddress = Address.Create("На деревню, Дедушке");
+    Location location = Location.Create(resultName.Value, resultAddress.Value);
+    db.Locations.Add(location);
 
     //головная должность
     PositionMatrix posCEO = db.PositionsMatrix.Add(PositionMatrix.Create(PositionName.Create("Ген. директор"), Slug.Create("ceo"), parent: null, globalStatistics)).Entity;

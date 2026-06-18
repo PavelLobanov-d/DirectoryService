@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
+using CSharpFunctionalExtensions;
 
 namespace DirectoryService.Domain.Locations;
 
@@ -31,6 +32,7 @@ public sealed class Location
         LocationName name, 
         Address address)
     {
+
         Location newObject = new(new LocationId(Guid.CreateVersion7()), name, address);
        
         return newObject;

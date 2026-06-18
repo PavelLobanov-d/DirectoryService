@@ -21,13 +21,13 @@ internal class LocationConfiguration : IEntityTypeConfiguration<Location>
             .HasColumnName("id");
 
         builder.Property(v => v.Name)
-            .HasConversion(v => v.Value, Name => LocationName.Create(Name))
+            .HasConversion(v => v.Value, Name => LocationName.Create(Name).Value)
             .HasMaxLength(100)
             .HasColumnName("name")
             .IsRequired();
 
         builder.Property(v => v.Address)
-            .HasConversion(v => v.Value, address => Address.Create(address))
+            .HasConversion(v => v.Value, address => Address.Create(address).Value)
             .HasMaxLength(200)
             .HasColumnName("address")
             .IsRequired();
