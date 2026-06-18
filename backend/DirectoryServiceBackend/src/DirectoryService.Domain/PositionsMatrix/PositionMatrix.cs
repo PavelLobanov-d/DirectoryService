@@ -2,6 +2,7 @@
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.shared;
+using DirectoryService.Domain.Statistics;
 using System;
 using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;

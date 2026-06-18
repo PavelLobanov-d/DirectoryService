@@ -5,6 +5,7 @@ using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
+using DirectoryService.Domain.Statistics;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;

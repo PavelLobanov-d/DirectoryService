@@ -1,3 +1,3 @@
 ﻿namespace DirectoryService.Contracts.Departments;
 
-public record MoveDepartmentDto(Guid DepartmentId, Guid NewPatrentDepartmentId);
+public record MoveDepartmentDto(Guid DepartmentId, Guid NewParentDepartmentId);

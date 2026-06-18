@@ -1,6 +1,8 @@
 ﻿using System.Reflection.Metadata;
 using Microsoft.AspNetCore.Mvc;
 using DirectoryService.Contracts.Locations;
+using DirectoryService.Core.Locations;
+using DirectoryService.Domain.shared;
 
 namespace DirectoryService.Controller;
 
@@ -9,40 +11,71 @@ namespace DirectoryService.Controller;
 [Route("[controller]")]
 public class LocationController : ControllerBase
 {
+    private readonly ILocationsService _locationsService;
+    public LocationController(ILocationsService locationsService)
+    {
+        _locationsService = locationsService;
+    }
+    
     [HttpPost]
-    public async Task<IActionResult> Create(
+    public async Task<IActionResult> CreateAsync(
         [FromBody] CreateLocationDto request,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.Create");
+        var resultLocationId = await _locationsService.CreateAsync(request, cancellationToken).ConfigureAwait(false);
+        if (resultLocationId.IsFailure)
+        {
+            return BadRequest(resultLocationId.Error);
+        }
+        return Ok($"Location.Create : {resultLocationId.Value}");
     }
     [HttpGet]
-    public async Task<IActionResult> Get(
+    public async Task<IActionResult> GetAsync(
         [FromQuery] GetLocationsDto request,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.Get");
+        var resultLocations = await _locationsService.GetAsync(request, cancellationToken).ConfigureAwait(false);
+        if (resultLocations.IsFailure)
+        { 
+            return BadRequest(resultLocations.Error);
+        }
+        return Ok($"Location.Get : {resultLocations.Value.Count}");
     }
     [HttpGet("{locationId:guid}")]
-    public async Task<IActionResult> GetById(
-        [FromRoute] Guid requestId,
+    public async Task<IActionResult> GetByIdAsync(
+        [FromRoute] Guid locationId,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.GetById");
+        var resultLocations = await _locationsService.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
+        if (resultLocations.IsFailure)
+        {
+            return BadRequest(resultLocations.Error);
+        }
+        return Ok($"Location.GetByIdAsync : {resultLocations.Value}");
     }
     [HttpPut("{locationId:guid}")]
-    public async Task<IActionResult> Update(
+    public async Task<IActionResult> UpdateAsync(
         [FromRoute] Guid requestId,
         [FromBody] UpdateLocationDto request,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.Update");
+        var result = await _locationsService.UpdateAsync(request, cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            return BadRequest(result.Error);
+        }
+        return Ok($"Location.Update : {result.Value}");
     }
     [HttpDelete("{locationId:guid}")]
-    public async Task<IActionResult> Delete(
-        [FromRoute] Guid requestId,
+    public async Task<IActionResult> DeleteAsync(
+        [FromRoute] Guid locationId,
         CancellationToken cancellationToken)
     {
-        return Ok("Location.Delete");
+        var result = await _locationsService.DeleteAsync(locationId, cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            return BadRequest(result.Error);
+        }
+        return Ok($"Location.Delete : {result.Value}");
     }
 }

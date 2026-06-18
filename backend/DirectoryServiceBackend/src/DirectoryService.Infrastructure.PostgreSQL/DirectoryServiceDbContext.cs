@@ -5,13 +5,13 @@ using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.GlobalStatisticsClass;
-using DirectoryService.Domain.shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using DirectoryService.Domain.Statistics;
 
 
 namespace DirectoryService.Infrastructure.PostgreSQL;

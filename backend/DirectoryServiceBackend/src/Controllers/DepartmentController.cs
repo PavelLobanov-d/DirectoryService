@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using DirectoryService.Contracts.Departments;
 
 namespace DirectoryService.Controller;

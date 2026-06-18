@@ -1,6 +1,6 @@
 ﻿using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Domain.Statistics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using System;

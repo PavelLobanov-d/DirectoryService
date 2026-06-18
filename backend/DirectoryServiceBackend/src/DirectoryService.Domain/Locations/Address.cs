@@ -1,10 +1,13 @@
-﻿using System;
+﻿using CSharpFunctionalExtensions;
+using DirectoryService.Domain.shared;
+using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DirectoryService.Domain.Locations;
 
-public record Address
+public partial record Address
 {
     public const int NAME_MIN_LENGHT = 3;
     public const int NAME_MAX_LENGHT = 150;
@@ -12,23 +15,27 @@ public record Address
     public string Value { get; } = string.Empty;
 
     private Address() { }
-    private Address(string value)
+    public Address(string value)
     {
         Value = value;
     }
 
-    public static Address Create(string value)
+    public static Result<Address, Error> Create(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        string normalized = _manySpaces.Replace(input:value.Trim(), " ");
+
+        if (string.IsNullOrWhiteSpace(normalized))
         {
-            throw new ArgumentNullException(nameof(value));
+            return GeneralErrors.ValueIsRequired("адрес");
         }
 
-        if (value.Length is < NAME_MIN_LENGHT or > NAME_MAX_LENGHT)
+        if (normalized.Length is < NAME_MIN_LENGHT or > NAME_MAX_LENGHT)
         {
-            throw new ArgumentOutOfRangeException(nameof(value));
+            return GeneralErrors.ValueIsInvalid("адрес");
         }
-
-        return new Address(value);
+        return new Address(normalized);
     }
+
+    [GeneratedRegex("\\s+", options: RegexOptions.Compiled)]
+    private static partial Regex _manySpaces { get; }
 }
