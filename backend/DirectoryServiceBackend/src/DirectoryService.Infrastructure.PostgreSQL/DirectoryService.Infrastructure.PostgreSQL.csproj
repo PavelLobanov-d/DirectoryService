@@ -5,6 +5,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <PackageReference Include="Dapper" />
     <PackageReference Include="dotenv.net" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
@@ -16,10 +17,12 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Npgsql" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DirectoryService.Core\DirectoryService.Core.csproj" />
     <ProjectReference Include="..\DirectoryService.Domain\DirectoryService.Domain.csproj" />
   </ItemGroup>
 

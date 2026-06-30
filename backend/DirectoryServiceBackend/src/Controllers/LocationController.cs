@@ -1,5 +1,6 @@
 ﻿using System.Reflection.Metadata;
 using Microsoft.AspNetCore.Mvc;
+using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Locations;
 using DirectoryService.Domain.shared;
@@ -27,11 +28,12 @@ public class LocationController : ControllerBase
         {
             return BadRequest(resultLocationId.Error);
         }
+        await _locationsService.SaveAsync(cancellationToken);
         return Ok($"Location.Create : {resultLocationId.Value}");
     }
     [HttpGet]
     public async Task<IActionResult> GetAsync(
-        [FromQuery] GetLocationsDto request,
+        [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {
         var resultLocations = await _locationsService.GetAsync(request, cancellationToken).ConfigureAwait(false);
@@ -55,15 +57,17 @@ public class LocationController : ControllerBase
     }
     [HttpPut("{locationId:guid}")]
     public async Task<IActionResult> UpdateAsync(
-        [FromRoute] Guid requestId,
+        [FromRoute] Guid locationId,
         [FromBody] UpdateLocationDto request,
         CancellationToken cancellationToken)
     {
-        var result = await _locationsService.UpdateAsync(request, cancellationToken).ConfigureAwait(false);
+        var result = await _locationsService.UpdateAsync(locationId, request, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
         {
             return BadRequest(result.Error);
         }
+        await _locationsService.SaveAsync(cancellationToken);
+
         return Ok($"Location.Update : {result.Value}");
     }
     [HttpDelete("{locationId:guid}")]
@@ -76,6 +80,8 @@ public class LocationController : ControllerBase
         {
             return BadRequest(result.Error);
         }
+        await _locationsService.SaveAsync(cancellationToken);
+
         return Ok($"Location.Delete : {result.Value}");
     }
 }

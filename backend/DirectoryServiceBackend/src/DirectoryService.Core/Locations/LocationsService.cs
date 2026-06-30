@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.GlobalStatisticsClass;
@@ -98,19 +99,19 @@ public class LocationsService: ILocationsService
     public async Task<Result<bool, Error>> DeleteAsync(Guid locationId, CancellationToken cancellationToken)
     {
         var result = await _locationsRepository.DeleteAsync(locationId, cancellationToken).ConfigureAwait(false);
-        if(result.IsFailure)
+        if (result.IsFailure)
         {
             _logger.LogError("Error deleting record of Location");
             return GeneralErrors.Failure("ошибка удаления локации");
         }
-
-        await _stats.CreateAsync(
-            locationId,
-            typeof(Location).Name,
-            Statistica.Level.INFO,
-            Statistica.Action.DELETE,
-            $"Удаление",
-            cancellationToken).ConfigureAwait(false);
+        if (result.Value)
+            await _stats.CreateAsync(
+                locationId,
+                typeof(Location).Name,
+                Statistica.Level.INFO,
+                Statistica.Action.DELETE,
+                $"Удаление",
+                cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Deleting of location {1}", locationId);
         return result;
@@ -137,7 +138,7 @@ public class LocationsService: ILocationsService
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public async Task<Result<List<Location>, Error>> GetAsync(GetLocationsDto request, CancellationToken cancellationToken)
+    public async Task<Result<List<Location>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken)
     {
         var resultLocations = await _locationsRepository.GetAsync(request, cancellationToken).ConfigureAwait(false);
         if (resultLocations.IsFailure)
@@ -154,7 +155,7 @@ public class LocationsService: ILocationsService
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>true, если обновление успешно</returns>
-    public async Task<Result<bool, Errors>> UpdateAsync(UpdateLocationDto locationDto, CancellationToken cancellationToken)
+    public async Task<Result<bool, Errors>> UpdateAsync(Guid locationId, UpdateLocationDto locationDto, CancellationToken cancellationToken)
     {
         //валидация входящих параметров
         var validationResult = await _updateValidator.ValidateAsync(locationDto, cancellationToken).ConfigureAwait(false);
@@ -166,7 +167,7 @@ public class LocationsService: ILocationsService
         //валидация бизнес-правил
         if (locationDto.NewName != null)
         {
-            var resultIsDuplicate = await _locationsRepository.HasNameAsync(locationDto.NewName, locationDto.locationId, cancellationToken).ConfigureAwait(false);
+            var resultIsDuplicate = await _locationsRepository.HasNameAsync(locationDto.NewName, locationId, cancellationToken).ConfigureAwait(false);
             if (resultIsDuplicate.IsFailure)
             {
                 _logger.LogError("Request error");
@@ -178,9 +179,9 @@ public class LocationsService: ILocationsService
             }
         }
         else if (locationDto.NewAddress == null)
-            return false;
+            return GeneralErrors.ValueIsRequired("NewName or NewAddress").ToErrors();
 
-        var resultLocation = await _locationsRepository.GetByIdAsync(locationDto.locationId, cancellationToken).ConfigureAwait(false);
+        var resultLocation = await _locationsRepository.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
         if (resultLocation.IsFailure)
         {
             _logger.LogError("Request error");
@@ -197,51 +198,60 @@ public class LocationsService: ILocationsService
                 if (resultName.IsSuccess)
                     name = resultName.Value;
             }
-                
+
             Address? address = null;
             if (locationDto.NewAddress != null)
             {
                 var resultAddress = Address.Create(locationDto.NewAddress);
-                if(resultAddress.IsSuccess)
+                if (resultAddress.IsSuccess)
                     address = resultAddress.Value;
             }
 
-            if (location.Update(name, address))
+            if (!location.Update(name, address))
             {
-                var locationUpdate = await _locationsRepository.SaveAsync(location, cancellationToken).ConfigureAwait(false);
-                if (locationUpdate.IsFailure)
-                {
-                    _logger.LogError("Error updating record of Location");
-                    return locationUpdate.Error.ToErrors();
-                }
-
-                if (locationDto.NewName != null)
-                {
-                    await _stats.CreateAsync(
-                        location.Id.Value,
-                        typeof(Location).Name,
-                        Statistica.Level.INFO,
-                        Statistica.Action.UPDATE,
-                        $"Изменение имени на {location.Name}",
-                        cancellationToken).ConfigureAwait(false);
-
-                    _logger.LogInformation("Change name of location {1} : {2}", location.Id.Value, location.Name.Value);
-                }
-                if (locationDto.NewAddress != null)
-                {
-                    await _stats.CreateAsync(
-                        location.Id.Value,
-                        typeof(Location).Name,
-                        Statistica.Level.INFO,
-                        Statistica.Action.UPDATE,
-                        $"Изменение адреса на {location.Address}",
-                        cancellationToken).ConfigureAwait(false);
-
-                    _logger.LogInformation("Change address of location {1} : {2}", location.Id.Value, location.Address.Value);
-                }
-                return true;
+                _logger.LogInformation("обновление не требуется");
+                return false;
             }
+
+            var locationUpdate = await _locationsRepository.UpdateAsync(location, cancellationToken).ConfigureAwait(false);
+            if (locationUpdate.IsFailure)
+            {
+                _logger.LogError("Error updating record of Location");
+                return locationUpdate.Error.ToErrors();
+            }
+
+            if (locationDto.NewName != null)
+            {
+                await _stats.CreateAsync(
+                    location.Id.Value,
+                    typeof(Location).Name,
+                    Statistica.Level.INFO,
+                    Statistica.Action.UPDATE,
+                    $"Изменение имени на {location.Name}",
+                    cancellationToken).ConfigureAwait(false);
+
+                _logger.LogInformation("Change name of location {1} : {2}", location.Id.Value, location.Name.Value);
+            }
+            if (locationDto.NewAddress != null)
+            {
+                await _stats.CreateAsync(
+                    location.Id.Value,
+                    typeof(Location).Name,
+                    Statistica.Level.INFO,
+                    Statistica.Action.UPDATE,
+                    $"Изменение адреса на {location.Address}",
+                    cancellationToken).ConfigureAwait(false);
+
+                _logger.LogInformation("Change address of location {1} : {2}", location.Id.Value, location.Address.Value);
+            }
+            return true;
         }
-        return GeneralErrors.NotFound(locationDto.locationId).ToErrors();
+        return GeneralErrors.NotFound(locationId).ToErrors();
+    }
+
+    public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken)
+    {
+        var result = await _locationsRepository.SaveAsync(cancellationToken).ConfigureAwait(false);
+        return result;
     }
 }

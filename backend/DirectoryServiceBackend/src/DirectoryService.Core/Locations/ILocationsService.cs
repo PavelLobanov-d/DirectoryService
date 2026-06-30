@@ -1,4 +1,5 @@
-﻿using DirectoryService.Contracts.Locations;
+﻿using DirectoryService.Contracts;
+using DirectoryService.Contracts.Locations;
 using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
@@ -40,12 +41,18 @@ public interface ILocationsService
     /// <param name="request"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Result<List<Location>, Error>> GetAsync(GetLocationsDto request, CancellationToken cancellationToken);
+    public Task<Result<List<Location>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken);
     /// <summary>
     /// изменить локацию
     /// </summary>
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Result<bool, Errors>> UpdateAsync(UpdateLocationDto locationDto, CancellationToken cancellationToken);
+    public Task<Result<bool, Errors>> UpdateAsync(Guid locationId, UpdateLocationDto locationDto, CancellationToken cancellationToken);
+    /// <summary>
+    /// сохранить изменения в контексте
+    /// </summary>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    public Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken);
 }

@@ -11,7 +11,8 @@ public static class DependencyInjection
     {
         return services
             .AddWebDependencies()
-            .AddCore();
+            .AddCore()
+            .AddInfrastructure();
     }
 
     private static IServiceCollection AddWebDependencies(this IServiceCollection services)

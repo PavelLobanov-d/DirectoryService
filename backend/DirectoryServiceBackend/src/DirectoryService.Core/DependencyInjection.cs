@@ -12,8 +12,11 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddCore(this IServiceCollection services)
     {
-        return services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly)
+        return services
+            .AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly)
             .AddScoped<ILocationsService, LocationsService>()
+         //   .AddScoped<ILocationsRepository, LocationsRepository>()
             .AddScoped<IStatisticsService, StatisticsService>();
+        //    .AddScoped<IStatisticsRepository, StatisticsRepository>();
     }
 }
