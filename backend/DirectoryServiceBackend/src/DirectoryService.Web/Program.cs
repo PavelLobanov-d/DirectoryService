@@ -1,11 +1,14 @@
-﻿using DirectoryService.Domain.Departments;
+﻿using DirectoryService.Core.Database;
+using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
 using DirectoryService.Infrastructure.PostgreSQL;
+using DirectoryService.Infrastructure.PostgreSQL.Database;
 using DirectoryService.Web;
 using dotenv.net;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using System.Runtime.CompilerServices;
@@ -20,10 +23,14 @@ if (connectionString == null)
     throw new DSException("Не указана строка подключения");
 }
 
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>(_ => new NpgsqlConnectionFactory(connectionString));
+
 builder.Services.AddProgramDependencies();
 builder.Services.AddScoped<GlobalStatistics>();
-builder.Services.AddScoped<DirectoryServiceDbContext>(_ => new DirectoryServiceDbContext(connectionString));
+builder.Services.AddScoped<IDirectoryServiceDbContext, DirectoryServiceDbContext>(_ => new DirectoryServiceDbContext(connectionString));
 //builder.Services.AddDbContext<DirectoryServiceDbContext>(options =>
 //    options.UseNpgsql(connectionString));
 
@@ -43,7 +50,7 @@ if(!app.Environment.IsProduction())
 
 app.MapGet("/guid", () => $"{(Guid.CreateVersion7())}");
 
-
+/*
 app.MapGet("/starttest", async (DirectoryServiceDbContext db, GlobalStatistics globalStatistics) =>
 {
     //локация
@@ -83,5 +90,6 @@ app.MapGet("/starttest", async (DirectoryServiceDbContext db, GlobalStatistics g
 
     await db.SaveChangesAsync().ConfigureAwait(true);
 });
+*/
 
 await app.RunAsync().ConfigureAwait(false);

@@ -1,22 +1,23 @@
-﻿using DirectoryService.Domain.DepartmentLocations;
+﻿using DirectoryService.Core.Database;
+using DirectoryService.Domain.DepartmentChiefPositions;
+using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
+using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.DepartmentChiefPositions;
-using DirectoryService.Domain.GlobalStatisticsClass;
+using DirectoryService.Domain.Statistics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using DirectoryService.Domain.Statistics;
 
 
 namespace DirectoryService.Infrastructure.PostgreSQL;
 
-public class DirectoryServiceDbContext : DbContext
+public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext
 {
     private readonly string _connectionString;
     public DirectoryServiceDbContext(string connectionString)
@@ -31,7 +32,10 @@ public class DirectoryServiceDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
+
         optionsBuilder.UseNpgsql(_connectionString);
+        optionsBuilder.EnableSensitiveDataLogging();
+        optionsBuilder.LogTo(Console.WriteLine);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

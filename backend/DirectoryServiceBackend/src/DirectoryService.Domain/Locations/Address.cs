@@ -38,4 +38,6 @@ public partial record Address
 
     [GeneratedRegex("\\s+", options: RegexOptions.Compiled)]
     private static partial Regex _manySpaces { get; }
+
+    public override string ToString() => Value.ToString();
 }
