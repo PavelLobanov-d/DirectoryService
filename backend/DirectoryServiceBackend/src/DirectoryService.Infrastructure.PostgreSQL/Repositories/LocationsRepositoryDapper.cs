@@ -7,13 +7,7 @@ using DirectoryService.Domain.shared;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.Primitives;
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
-using System.Xml.Linq;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 internal class LocationsRepositoryDapper : ILocationsRepository
