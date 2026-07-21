@@ -1,4 +1,9 @@
-﻿using DirectoryService.Core.Locations;
+﻿using DirectoryService.Core.DepartmentChiefPositions;
+using DirectoryService.Core.DepartmentLocations;
+using DirectoryService.Core.DepartmentPositions;
+using DirectoryService.Core.Departments;
+using DirectoryService.Core.Locations;
+using DirectoryService.Core.PositionsMatrix;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using DirectoryService.Infrastructure.PostgreSQL.Repositories;
@@ -16,7 +21,11 @@ public static class DependencyInjection
         return services
             //.AddScoped<ILocationsRepository, LocationsRepositoryDapper>()
             .AddScoped<ILocationsRepository, LocationsRepository>()
+            .AddScoped<IPositionMatrixRepository, PositionMatrixRepository>()
+            .AddScoped<IDepartmentsChiefPositionRepository, DepartmentsChiefPositionRepository>()
+            .AddScoped<IDepartmentsRepository, DepartmentsRepository>()
+            .AddScoped<IDepartmentPositionsRepository, DepartmentPositionsRepository>()
+            .AddScoped<IDepartmentLocationsRepository, DepartmentLocationsRepository>()
             .AddScoped<IStatisticsRepository, StatisticsRepository>();
     }
-
 }

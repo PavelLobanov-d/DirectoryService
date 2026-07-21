@@ -17,7 +17,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -32,18 +32,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("positionmatrix_id");
 
-                    b.Property<Guid>("PositionMatrixId1")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("DepartmentId", "PositionMatrixId")
+                    b.HasKey("DepartmentId")
                         .HasName("PK_department_chiefpositions");
 
-                    b.HasIndex("DepartmentId")
-                        .IsUnique();
-
                     b.HasIndex("PositionMatrixId");
-
-                    b.HasIndex("PositionMatrixId1");
 
                     b.ToTable("department_chiefpositions", (string)null);
                 });
@@ -190,7 +182,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                     b.ToTable("positionsmatrix", (string)null);
                 });
 
-            modelBuilder.Entity("DirectoryService.Domain.shared.Statistica", b =>
+            modelBuilder.Entity("DirectoryService.Domain.Statistics.Statistica", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -240,15 +232,9 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("DirectoryService.Domain.PositionsMatrix.PositionMatrix", null)
+                    b.HasOne("DirectoryService.Domain.PositionsMatrix.PositionMatrix", "PositionMatrix")
                         .WithMany("DepartmentChiefPositions")
                         .HasForeignKey("PositionMatrixId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DirectoryService.Domain.PositionsMatrix.PositionMatrix", "PositionMatrix")
-                        .WithMany()
-                        .HasForeignKey("PositionMatrixId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

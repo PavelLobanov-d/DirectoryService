@@ -2,11 +2,9 @@
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Statistics;
-using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
-using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 
@@ -79,16 +77,16 @@ public class LocationsService: ILocationsService
         }
 
         await _stats.CreateAsync(
-            location.Id.Value,
+            resultAdd.Value,
             location.GetType().Name,
             Statistica.Level.INFO,
             Statistica.Action.CREATE,
             $"Создание локации {location.Name}",
             cancellationToken).ConfigureAwait(false);
 
-        _logger.LogInformation("Location created with Id {1}", location.Id.Value);
+        _logger.LogInformation("Location created with Id {1}", resultAdd.Value);
 
-        return location.Id.Value;
+        return resultAdd.Value;
     }
     /// <summary>
     /// удалить локацию
@@ -122,7 +120,7 @@ public class LocationsService: ILocationsService
     /// <param name="locationId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>объект локации</returns>
-    public async Task<Result<Location, Error>> GetByIdAsync(Guid locationId, CancellationToken cancellationToken)
+    public async Task<Result<Location?, Error>> GetByIdAsync(Guid locationId, CancellationToken cancellationToken)
     {
         var resultLocation = await _locationsRepository.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
         if(resultLocation.IsFailure)

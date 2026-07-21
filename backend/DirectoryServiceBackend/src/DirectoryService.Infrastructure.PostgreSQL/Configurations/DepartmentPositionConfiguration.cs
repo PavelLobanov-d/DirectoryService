@@ -1,13 +1,7 @@
-﻿using DirectoryService.Domain.DepartmentLocations;
-using DirectoryService.Domain.DepartmentPositions;
-using DirectoryService.Domain.Departments;
-using DirectoryService.Domain.PositionsMatrix;
+﻿using DirectoryService.Domain.DepartmentPositions;
+using DirectoryService.Infrastructure.PostgreSQL.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Runtime.Intrinsics.Arm;
-using System.Text;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Configurations;
 
@@ -19,16 +13,16 @@ internal class DepartmentPositionConfiguration : IEntityTypeConfiguration<Depart
 
         builder.HasKey(v => v.Id).HasName("PK_department_positions");
         builder.Property(v => v.Id)
-            .HasConversion(v => v.Value, id => new DepartmentPositionId(id))
+            .HasConversion<DepartmentPositionIdConverter>()
             .HasColumnName("id");
 
         builder.Property(v => v.DepartmentId)
-            .HasConversion(v => v.Value, departmentId => new DepartmentId(departmentId))
+            .HasConversion<DepartmentIdConverter>()
             .HasColumnName("department_id")
             .IsRequired();
 
         builder.Property(v => v.PositionMatrixId)
-            .HasConversion(v => v.Value, positionMatrixId => new PositionMatrixId(positionMatrixId))
+            .HasConversion<PositionMatrixIdConverter>()
             .HasColumnName("position_id")
             .IsRequired();
 

@@ -1,12 +1,8 @@
 ﻿using DirectoryService.Domain.DepartmentChiefPositions;
-using DirectoryService.Domain.DepartmentLocations;
-using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
+using DirectoryService.Infrastructure.PostgreSQL.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Configurations;
 
@@ -16,27 +12,27 @@ internal class DepartmentChiefPositionConfiguration : IEntityTypeConfiguration<D
     {
         builder.ToTable("department_chiefpositions");
 
-        builder.HasKey(v => new { v.DepartmentId, v.PositionMatrixId }).HasName("PK_department_chiefpositions");
+        builder.HasKey(v => v.DepartmentId).HasName("PK_department_chiefpositions");
 
         builder.Property(v => v.DepartmentId)
-            .HasConversion(v => v.Value, id => new DepartmentId(id))
+            .HasConversion<DepartmentIdConverter>()
             .IsRequired()
             .HasColumnName("department_id");
 
         builder.Property(v => v.PositionMatrixId)
-            .HasConversion(v => v.Value, id => new PositionMatrixId(id))
+            .HasConversion<PositionMatrixIdConverter>()
             .IsRequired()
             .HasColumnName("positionmatrix_id");
-
+        
         builder.HasOne(dcp => dcp.Department)
             .WithOne(d => d.DepartmentChiefPosition)
             .HasForeignKey<DepartmentChiefPosition>(dcp => dcp.DepartmentId)
             .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.SetNull);
 
-        builder.HasOne<PositionMatrix>()
-            .WithMany(p => p.DepartmentChiefPositions)
-            .HasForeignKey(cp => cp.PositionMatrixId)
+        builder.HasOne(dcp => dcp.PositionMatrix)
+            .WithMany(pm => pm.DepartmentChiefPositions)
+            .HasForeignKey(v => v.PositionMatrixId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
     }

@@ -1,9 +1,10 @@
-﻿using System.Reflection.Metadata;
-using Microsoft.AspNetCore.Mvc;
+﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Locations;
 using DirectoryService.Domain.shared;
+using Microsoft.AspNetCore.Mvc;
+using System.Reflection.Metadata;
 
 namespace DirectoryService.Controller;
 
@@ -53,7 +54,11 @@ public class LocationController : ControllerBase
         {
             return BadRequest(resultLocations.Error);
         }
-        return Ok($"Location.GetByIdAsync : {resultLocations.Value}");
+        if (resultLocations.Value == null)
+        {
+            return NotFound();
+        }
+        return Ok($"Location.GetByIdAsync : {resultLocations.Value.Name}");
     }
     [HttpPut("{locationId:guid}")]
     public async Task<IActionResult> UpdateAsync(

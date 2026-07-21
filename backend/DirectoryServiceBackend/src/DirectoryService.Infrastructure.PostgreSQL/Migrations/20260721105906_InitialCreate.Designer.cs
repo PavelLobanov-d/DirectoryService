@@ -12,15 +12,15 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
 {
     [DbContext(typeof(DirectoryServiceDbContext))]
-    [Migration("20260605113615_ByNotes1")]
-    partial class ByNotes1
+    [Migration("20260721105906_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -38,11 +38,8 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                     b.Property<Guid>("PositionMatrixId1")
                         .HasColumnType("uuid");
 
-                    b.HasKey("DepartmentId", "PositionMatrixId")
+                    b.HasKey("DepartmentId")
                         .HasName("PK_department_chiefpositions");
-
-                    b.HasIndex("DepartmentId")
-                        .IsUnique();
 
                     b.HasIndex("PositionMatrixId");
 
@@ -193,7 +190,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                     b.ToTable("positionsmatrix", (string)null);
                 });
 
-            modelBuilder.Entity("DirectoryService.Domain.shared.Statistica", b =>
+            modelBuilder.Entity("DirectoryService.Domain.Statistics.Statistica", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()

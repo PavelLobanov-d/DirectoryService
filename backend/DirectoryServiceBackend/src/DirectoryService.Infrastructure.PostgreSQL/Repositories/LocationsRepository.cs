@@ -1,27 +1,25 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
-using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Locations;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 
 internal class LocationsRepository : ILocationsRepository
 {
     private readonly IDirectoryServiceDbContext _dbContext;
-    public LocationsRepository(IDirectoryServiceDbContext dbContext)
+    private readonly ILogger _logger;
+
+    public LocationsRepository(IDirectoryServiceDbContext dbContext, ILogger<LocationsRepository> logger)
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
     public async Task<Result<Guid, Error>> AddAsync(Location location, CancellationToken cancellationToken = default)
     {
@@ -66,9 +64,52 @@ internal class LocationsRepository : ILocationsRepository
             }
         }
 
+        if (request.OrderBy != null && !request.OrderBy.Equals(string.Empty))
+        {
+            string[] param = request.OrderBy.Split(' ');
+            string field = param[0];
+            string orderType = "";
+            if (param.Length > 1)
+            {
+                orderType = param[1];
+            }
+            if(orderType.ToLowerInvariant().StartsWith("desc", StringComparison.OrdinalIgnoreCase))
+            {
+                switch (field.ToLowerInvariant())
+                {
+                    case "name":
+                        query = query.OrderByDescending(p => p.Name);
+                        break;
+                    case "address":
+                        query = query.OrderByDescending(p => p.Address);
+                        break;
+                }
+            }
+            else if(orderType.ToLowerInvariant().StartsWith("asc", StringComparison.OrdinalIgnoreCase) || orderType == "")
+            {
+                switch (field.ToLowerInvariant())
+                {
+                    case "name":
+                        query = query.OrderBy(p => p.Name);
+                        break;
+                    case "address":
+                        query = query.OrderBy(p => p.Address);
+                        break;
+                }
+            }
+        }
+        else
+            query = query.OrderBy(p => p.Id);
+
+        if (request.Page != null && request.PageSize != null)
+        {
+            int skiprecords = ((int)request.Page - 1) * (int)request.PageSize;
+            query = query
+            .Skip(skiprecords)
+            .Take((int)request.PageSize);
+        }
+
         return await query
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
