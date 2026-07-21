@@ -30,8 +30,13 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
-        return Ok($"DepartmentService.CreateAsync : {result.Value}");
+
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+        return Ok($"DepartmentService.CreateAsync : {resultSave.Value}");
     }
     [HttpGet]
     public async Task<IActionResult> GetAsync(
@@ -76,9 +81,14 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
 
-        return Ok($"DepartmentService.Update : {result.Value}");
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+
+        return Ok($"DepartmentService.Update : {resultSave.Value}");
     }
 
     [HttpDelete("{departmentId:guid}")]
@@ -91,9 +101,14 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
 
-        return Ok($"DepartmentService.Delete : {result.Value}");
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+
+        return Ok($"DepartmentService.Delete : {resultSave.Value}");
     }
 
     [HttpPut("move/{departmentId:guid}")]
@@ -107,9 +122,14 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
 
-        return Ok($"DepartmentService.ChangeParentAsync : {result.Value}");
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+
+        return Ok($"DepartmentService.ChangeParentAsync : {resultSave.Value}");
     }
 
     [HttpPut("linkposition/{departmentId:guid}")]
@@ -123,9 +143,13 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
 
-        return Ok($"DepartmentService.LinkPosition : {result.Value}");
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+        return Ok($"DepartmentService.LinkPosition : {resultSave.Value}");
     }
 
     [HttpPut("detachposition/{departmentPositionId:guid}")]
@@ -138,9 +162,13 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
 
-        return Ok($"DepartmentService.DetachPosition : {result.Value}");
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if(resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+        return Ok($"DepartmentService.DetachPosition : {resultSave.Value}");
     }
 
     [HttpPut("linklocation/{departmentId:guid}")]
@@ -154,9 +182,14 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
 
-        return Ok($"DepartmentService.LinkLocation : {result.Value}");
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+
+        return Ok($"DepartmentService.LinkLocation : {resultSave.Value}");
     }
 
     [HttpPut("detachlocation/{departmentId:guid}")]
@@ -170,9 +203,14 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(result.Error);
         }
-        await _departmentService.SaveAsync(cancellationToken);
 
-        return Ok($"DepartmentService.DetachLocation : {result.Value}");
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+
+        return Ok($"DepartmentService.DetachLocation : {resultSave.Value}");
     }
 
 }

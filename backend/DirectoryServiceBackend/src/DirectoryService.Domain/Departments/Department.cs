@@ -1,4 +1,5 @@
-﻿using DirectoryService.Domain.DepartmentChiefPositions;
+﻿using CSharpFunctionalExtensions;
+using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.GlobalStatisticsClass;
@@ -37,7 +38,17 @@ public sealed class Department
     public DepartmentName Name { get; private set; }
     public Slug Slug { get; private set; }
     public PathSlug? PathSlug { get; private set; } = null;
-    public PathSlug PathSlugFull => PathSlug == null ? PathSlug.Create(Slug).Value : PathSlug.CreateChild(Slug).Value;
+    public PathSlug PathSlugFull
+    {
+        get
+        {
+            var result = PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
+            if (result.IsFailure)
+                throw new InvalidOperationException("Не удалось создать PathSlugFull.");
+            return result.Value;
+        }
+    }
+
     public DepartmentId? ParentId { get; private set; }
     private Department? _parent = null;
     /// <summary>
@@ -241,16 +252,14 @@ public sealed class Department
             Name = newName;
             result = true;
         }
-        if (newSlug != null && newSlug != Slug)
-        {
-            Slug = newSlug;
-        }
         if(newDepartmentChiefPosition != null && DepartmentChiefPosition.PositionMatrixId != newDepartmentChiefPosition.PositionMatrixId)
         {
             DepartmentChiefPosition = newDepartmentChiefPosition;
         }
         if ((newSlug != null && newSlug != Slug) || (this.Parent != null && this.Parent.PathSlugFull != PathSlug))
         {
+            if (newSlug != null && newSlug != Slug)
+                Slug = newSlug;
             if (Childs != null && Childs.Select(child =>
             {
                 bool v = child.refresh();

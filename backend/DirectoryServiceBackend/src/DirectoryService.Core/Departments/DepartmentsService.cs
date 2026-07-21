@@ -193,10 +193,15 @@ public class DepartmentsService : IDepartmentsService
         foreach (Guid locationId in departmentDto.LocationsId)
         {
             var resultLocation = await _locationsService.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
-            if (resultLocation.IsSuccess && resultLocation.Value != null)
+            if (resultLocation.IsFailure)
             {
-                department.LinkLocation(resultLocation.Value);
+                _logger.LogError("Error _locationsService.GetByIdAsync");
+                return GeneralErrors.Failure("ошибка получения локации").ToErrors();
             }
+            if (resultLocation.Value == null)
+                return GeneralErrors.NotFound(locationId, "locationId").ToErrors();
+
+            department.LinkLocation(resultLocation.Value);
         }
 
         var resultAdd = await _departmentRepository.AddAsync(department, cancellationToken).ConfigureAwait(false);

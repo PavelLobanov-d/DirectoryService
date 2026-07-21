@@ -53,15 +53,15 @@ internal class DepartmentLocationsRepository : IDepartmentLocationsRepository
             .ConfigureAwait(false);
         if (obj != null)
         {
-            var result = _dbContext.DepartmentLocations.Remove(obj);
-            return result != null;
+            _dbContext.DepartmentLocations.Remove(obj);
+            return true;
         }
         return false;
     }
     public async Task<Result<bool, Error>> DeleteAsync(DepartmentLocation departmentLocation, CancellationToken cancellationToken = default)
     {
-        var result = _dbContext.DepartmentLocations.Remove(departmentLocation);
-        return result != null;
+        _dbContext.DepartmentLocations.Remove(departmentLocation);
+        return true;
     }
 
     public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken)

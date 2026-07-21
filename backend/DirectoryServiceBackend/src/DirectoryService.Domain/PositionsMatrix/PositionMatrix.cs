@@ -39,7 +39,16 @@ public sealed class PositionMatrix
     /// иерархия родительских Slug'ов
     /// </summary>
     public PathSlug? PathSlug { get; private set; }
-    public PathSlug PathSlugFull => PathSlug == null ? PathSlug.Create(Slug).Value : PathSlug.CreateChild(Slug).Value;
+    public PathSlug PathSlugFull
+    {
+        get
+        {
+            var result = PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
+            if (result.IsFailure)
+                throw new InvalidOperationException("Не удалось создать PathSlugFull.");
+            return result.Value;
+        }
+    }
     /// <summary>
     /// вышестоящая должность
     /// </summary>
