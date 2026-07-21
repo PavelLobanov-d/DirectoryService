@@ -47,12 +47,6 @@ public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext
                 optionsBuilder.UseNpgsql(envConnectionString);
             }
         }
-
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = "User Id=postgres;Password=postgres;Host=localhost;Port=5454;Database=directory_service_db;";
-            optionsBuilder.UseNpgsql(connectionString);
-        }
         
         optionsBuilder.EnableSensitiveDataLogging();
         optionsBuilder.LogTo(Console.WriteLine);

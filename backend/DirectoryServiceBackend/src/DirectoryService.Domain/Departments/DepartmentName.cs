@@ -32,7 +32,7 @@ public partial record DepartmentName
             return GeneralErrors.ValueIsInvalid("название");
         }
 
-        return new DepartmentName(value);
+        return new DepartmentName(normalized);
     }
 
     [GeneratedRegex("\\s+", options: RegexOptions.Compiled)]

@@ -13,9 +13,8 @@ public class DirectoryServiceDbContextFactory : IDesignTimeDbContextFactory<Dire
         string? connectionString = Environment.GetEnvironmentVariable("DIRECTORY_SERVICE_CONNECTIONSTRING");
         if (string.IsNullOrEmpty(connectionString))
         {
-            connectionString = "User Id=postgres;Password=postgres;Host=localhost;Port=5454;Database=directory_service_db;";
+            throw new ArgumentNullException("\"DIRECTORY_SERVICE_CONNECTIONSTRING\"");
         }
-
         var optionsBuilder = new DbContextOptionsBuilder<DirectoryServiceDbContext>();
         optionsBuilder.UseNpgsql(connectionString);
 

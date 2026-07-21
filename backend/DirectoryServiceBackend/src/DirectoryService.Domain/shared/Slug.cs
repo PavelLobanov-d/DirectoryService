@@ -16,7 +16,7 @@ public sealed partial record Slug
     public string Value { get; }
 
     private Slug() { }
-    public Slug(string value)
+    private Slug(string value)
     {
         Value = value;
     }

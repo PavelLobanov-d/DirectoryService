@@ -189,6 +189,16 @@ public class DepartmentsService : IDepartmentsService
 
         Department department = Department.Create(resultDepartmentName.Value, resultSlug.Value, parent, positionChief);
 
+        //проверка локаций
+        foreach (Guid locationId in departmentDto.LocationsId)
+        {
+            var resultLocation = await _locationsService.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
+            if (resultLocation.IsSuccess && resultLocation.Value != null)
+            {
+                department.LinkLocation(resultLocation.Value);
+            }
+        }
+
         var resultAdd = await _departmentRepository.AddAsync(department, cancellationToken).ConfigureAwait(false);
         if (resultAdd.IsFailure)
         {

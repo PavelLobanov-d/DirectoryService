@@ -52,12 +52,12 @@ public class AddressConverter : ValueConverter<Address, string>
 }
 public class SlugConverter : ValueConverter<Slug, string>
 {
-    public SlugConverter() : base(slug => slug.Value, str => new Slug(str)) { }
+    public SlugConverter() : base(slug => slug.Value, str => Slug.Create(str).Value) { }
 }
 
 public class PathSlugConverter : ValueConverter<PathSlug, string>
 {
-    public PathSlugConverter() : base(path => path.Value, str => new PathSlug(str)) { }
+    public PathSlugConverter() : base(path => path.Value, str => PathSlug.Create(str).Value) { }
 }
 public class DateTimeUtcConverter : ValueConverter<DateTime, DateTime>
 {

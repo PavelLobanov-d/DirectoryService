@@ -13,7 +13,7 @@ public sealed partial record PathSlug
     public string Value { get; }
 
     private PathSlug() { }
-    public PathSlug(string value)
+    private PathSlug(string value)
     {
         Value = value;
     }

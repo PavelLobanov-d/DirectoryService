@@ -36,8 +36,8 @@ public class PositionMatrixRepository : IPositionMatrixRepository
         .ConfigureAwait(false);
         if (obj != null)
         {
-            var result = _dbContext.PositionsMatrix.Remove(obj);
-            return result != null;
+            _dbContext.PositionsMatrix.Remove(obj);
+            return true;
         }
         return false;
     }
@@ -58,11 +58,13 @@ public class PositionMatrixRepository : IPositionMatrixRepository
             {
                 case nameof(PositionMatrix.Name):
                     var resultName = PositionName.Create(keySearch.Value.ToString());
-                    query = query.Where(p => p.Name == resultName.Value);
+                    if (resultName.IsSuccess)
+                        query = query.Where(p => p.Name == resultName.Value);
                     break;
                 case nameof(PositionMatrix.Slug):
                     var resultSlug = Slug.Create(keySearch.Value.ToString());
-                    query = query.Where(p => p.Slug == resultSlug.Value);
+                    if (resultSlug.IsSuccess)
+                        query = query.Where(p => p.Slug == resultSlug.Value);
                     break;
             }
         }

@@ -31,7 +31,7 @@ public partial record PositionName
             return GeneralErrors.ValueIsInvalid("название");
         }
 
-        return new PositionName(value);
+        return new PositionName(normalized);
     }
 
     [GeneratedRegex("\\s+", options: RegexOptions.Compiled)]
