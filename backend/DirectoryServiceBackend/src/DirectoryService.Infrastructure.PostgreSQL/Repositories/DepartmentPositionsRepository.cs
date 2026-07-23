@@ -30,6 +30,7 @@ internal class DepartmentPositionsRepository : IDepartmentPositionsRepository
         return await _dbContext.DepartmentPositions
             .Where(dp => dp.Id == new DepartmentPositionId(departmentPositionId))
             .Include(v => v.PositionMatrix)
+            .Include(v => v.Department)
             .SingleOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -38,6 +39,7 @@ internal class DepartmentPositionsRepository : IDepartmentPositionsRepository
         return await _dbContext.DepartmentPositions
             .Where(dp => dp.DepartmentId == new DepartmentId(departmentId))
             .Include(v => v.PositionMatrix)
+            .Include(v => v.Department)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }

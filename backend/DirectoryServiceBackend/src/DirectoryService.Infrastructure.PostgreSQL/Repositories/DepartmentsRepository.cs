@@ -114,6 +114,10 @@ public class DepartmentsRepository : IDepartmentsRepository
         }
 
         var resultSelect = await query
+            .Include(v => v.DepartmentChiefPosition)
+            .ThenInclude(v => v.PositionMatrix)
+            .Include(v => v.DepartmentPositions)
+            .Include(v => v.DepartmentLocations)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -123,6 +127,10 @@ public class DepartmentsRepository : IDepartmentsRepository
     {
         return await _dbContext.Departments
             .Where(l => l.Id == new DepartmentId(departmentId))
+            .Include(v => v.DepartmentChiefPosition)
+            .ThenInclude(v => v.PositionMatrix)
+            .Include(v => v.DepartmentPositions)
+            .Include(v => v.DepartmentLocations)
             .SingleOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -134,6 +142,10 @@ public class DepartmentsRepository : IDepartmentsRepository
             parentId = new DepartmentId((Guid)parentDepartmentId);
         return await _dbContext.Departments
             .Where(l => l.ParentId == parentId)
+            .Include(v => v.DepartmentChiefPosition)
+            .ThenInclude(v => v.PositionMatrix)
+            .Include(v => v.DepartmentPositions)
+            .Include(v => v.DepartmentLocations)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
