@@ -28,12 +28,12 @@ internal class DepartmentChiefPositionConfiguration : IEntityTypeConfiguration<D
             .WithOne(d => d.DepartmentChiefPosition)
             .HasForeignKey<DepartmentChiefPosition>(dcp => dcp.DepartmentId)
             .IsRequired()
-            .OnDelete(DeleteBehavior.SetNull);
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(dcp => dcp.PositionMatrix)
             .WithMany(pm => pm.DepartmentChiefPositions)
             .HasForeignKey(v => v.PositionMatrixId)
             .IsRequired()
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

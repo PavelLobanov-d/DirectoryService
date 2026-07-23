@@ -36,7 +36,7 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(resultSave.Error);
         }
-        return Ok($"DepartmentService.CreateAsync : {resultSave.Value}");
+        return Ok($"DepartmentService.CreateAsync : {result.Value}");
     }
     [HttpGet]
     public async Task<IActionResult> GetAsync(

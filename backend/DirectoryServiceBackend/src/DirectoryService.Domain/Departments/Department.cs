@@ -7,11 +7,6 @@ using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryService.Domain.Departments;
 
