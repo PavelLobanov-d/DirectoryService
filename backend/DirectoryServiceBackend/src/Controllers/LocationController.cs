@@ -30,7 +30,7 @@ public class LocationController : ControllerBase
             return BadRequest(resultLocationId.Error);
         }
         await _locationsService.SaveAsync(cancellationToken);
-        return Ok($"Location.Create : {resultLocationId.Value}");
+        return Ok(resultLocationId.Value);
     }
     [HttpGet]
     public async Task<IActionResult> GetAsync(

@@ -96,7 +96,7 @@ public class DepartmentsService : IDepartmentsService
         }
 
         Department? parent = null;
-
+        /*
         //проверка на единственный департамент с нулевым родительским Id
         if (departmentDto.ParentDepartmentId == null)
         {
@@ -126,6 +126,8 @@ public class DepartmentsService : IDepartmentsService
             }
             parent = resultParent.Value;
         }
+        */
+
         //должность начальника
         PositionMatrix positionChief;
         var resultPositionChief = await _positionMatrixService.GetByIdAsync(departmentDto.ChiefPositionMatrixId, cancellationToken).ConfigureAwait(false);

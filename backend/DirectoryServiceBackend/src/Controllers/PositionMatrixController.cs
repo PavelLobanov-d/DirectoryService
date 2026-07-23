@@ -30,7 +30,7 @@ public class PositionMatrixController : ControllerBase
             return BadRequest(result.Error);
         }
         await _positionMatrixService.SaveAsync(cancellationToken);
-        return Ok($"PositionMatrix.Create : {result.Value}");
+        return Ok(result.Value);
     }
     [HttpGet]
     public async Task<IActionResult> GetAsync(

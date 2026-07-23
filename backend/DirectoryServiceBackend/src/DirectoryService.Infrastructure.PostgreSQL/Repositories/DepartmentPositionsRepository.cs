@@ -13,7 +13,7 @@ internal class DepartmentPositionsRepository : IDepartmentPositionsRepository
 {
     private readonly IDirectoryServiceDbContext _dbContext;
     private readonly ILogger _logger;
-    public DepartmentPositionsRepository(IDirectoryServiceDbContext dbContext, ILogger<DepartmentsChiefPositionRepository> logger)
+    public DepartmentPositionsRepository(IDirectoryServiceDbContext dbContext, ILogger<DepartmentPositionsRepository> logger)
     {
         _dbContext = dbContext;
         _logger = logger;

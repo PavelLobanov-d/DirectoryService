@@ -45,23 +45,6 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
             .HasForeignKey(v => v.ParentId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.SetNull);
-        /*
-        builder.HasMany(v => v.DepartmentPositions)
-            .WithOne(dp => dp.Department)
-            .HasForeignKey(v => v.DepartmentId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Cascade);
-        */
-        builder.HasMany(v => v.DepartmentLocations)
-            .WithOne(dl => dl.Department)
-            .HasForeignKey(dl => dl.DepartmentId)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasOne(dcp => dcp.DepartmentChiefPosition)
-            .WithOne(v => v.Department)
-            .HasForeignKey<DepartmentChiefPosition>(v => v.DepartmentId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(v => v.Childs)
             .UsePropertyAccessMode(PropertyAccessMode.Field);

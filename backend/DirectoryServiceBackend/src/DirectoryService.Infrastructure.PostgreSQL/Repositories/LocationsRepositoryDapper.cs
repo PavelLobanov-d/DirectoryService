@@ -36,14 +36,10 @@ internal class LocationsRepositoryDapper : ILocationsRepository
             locationAddress = location.Address.Value
         };
 
-        using var transaction = connection.BeginTransaction();
-
         try
         {
-
             int v = await connection.ExecuteAsync(request, locationInsertParams).ConfigureAwait(false);
 
-            transaction.Commit();
             if (v == 1)
                 return location.Id.Value;
             else
@@ -51,10 +47,8 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         }
         catch (Exception ex)
         {
-            transaction.Rollback();
-
             _logger.LogError(ex, "Fail to insert Location");
-            return GeneralErrors.Failure("Ошибка вставки локации: " + ex.Message);
+            return GeneralErrors.Failure("Ошибка вставки локации");
         }
     }
     public async Task<Result<bool, Error>> DeleteAsync(Guid locationId, CancellationToken cancellationToken = default)
@@ -79,7 +73,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fail to delete Location");
-            return GeneralErrors.Failure("Ошибка удаления локации: " + ex.Message);
+            return GeneralErrors.Failure("Ошибка удаления локации");
         }
     }
     public Task<Result<bool, Error>> DeleteAsync(Location location, CancellationToken cancellationToken = default)
@@ -172,7 +166,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fail to select Location");
-            return GeneralErrors.Failure("Ошибка выбора локации: " + ex.Message);
+            return GeneralErrors.Failure("Ошибка выбора локации");
         }
     }
     public async Task<Result<Location?, Error>> GetByIdAsync(Guid locationId, CancellationToken cancellationToken = default)
@@ -195,7 +189,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fail to select Location");
-            return GeneralErrors.Failure("Ошибка выбора локации: " + ex.Message);
+            return GeneralErrors.Failure("Ошибка выбора локации");
         }
     }
     public async Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken = default)
@@ -219,7 +213,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fail to select Locations");
-            return GeneralErrors.Failure("Ошибка выбора локаций: " + ex.Message);
+            return GeneralErrors.Failure("Ошибка выбора локаций");
         }
     }
     public async Task<Result<bool, Error>> HasNameAsync(string name, Guid? excludeId, CancellationToken cancellationToken = default)
@@ -248,7 +242,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fail to select Location");
-            return GeneralErrors.Failure("Ошибка выбора локации: " + ex.Message);
+            return GeneralErrors.Failure("Ошибка выбора локации");
         }
     }
     public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default)
@@ -282,7 +276,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         catch (Exception ex)
         {
             _logger.LogError(ex, "Fail to update Location");
-            return GeneralErrors.Failure("Ошибка обновления локации: " + ex.Message);
+            return GeneralErrors.Failure("Ошибка обновления локации");
         }
     }
 }

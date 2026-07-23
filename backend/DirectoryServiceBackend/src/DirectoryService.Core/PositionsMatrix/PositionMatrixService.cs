@@ -72,7 +72,7 @@ public class PositionMatrixService : IPositionMatrixService
         }
 
         PositionMatrix? parent = null;
-
+        /*
         //проверка на единственную должность с нулевым родительским Id
         if (positionMatrixDto.ParentPositionMatrixId == null)
         {
@@ -103,6 +103,7 @@ public class PositionMatrixService : IPositionMatrixService
             }
             parent = resultParent.Value;
         }
+        */
 
         PositionMatrix positionMatrix = PositionMatrix.Create(resultPositionName.Value, resultSlug.Value, parent);
         var resultAdd = await _positionMatrixRepository.AddAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
