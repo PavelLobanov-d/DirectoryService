@@ -96,6 +96,7 @@ public class DepartmentsService : IDepartmentsService
         }
 
         Department? parent = null;
+
         /*
         //проверка на единственный департамент с нулевым родительским Id
         if (departmentDto.ParentDepartmentId == null)
@@ -112,7 +113,8 @@ public class DepartmentsService : IDepartmentsService
                 return GeneralErrors.AlreadyExist().ToErrors();
             }
         }
-        else
+        */
+        if (departmentDto.ParentDepartmentId != null)
         {
             var resultParent = await _departmentRepository.GetByIdAsync((Guid)departmentDto.ParentDepartmentId, cancellationToken).ConfigureAwait(false);
             if (resultParent.IsFailure)
@@ -125,8 +127,7 @@ public class DepartmentsService : IDepartmentsService
                 return GeneralErrors.NotFound((Guid)departmentDto.ParentDepartmentId).ToErrors();
             }
             parent = resultParent.Value;
-        }
-        */
+        }        
 
         //должность начальника
         PositionMatrix positionChief;

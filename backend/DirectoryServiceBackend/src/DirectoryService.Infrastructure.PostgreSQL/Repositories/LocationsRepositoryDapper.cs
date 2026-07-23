@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using System.Text;
 using System.Xml.Linq;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
@@ -84,72 +85,70 @@ internal class LocationsRepositoryDapper : ILocationsRepository
     {
         using var connection = await _connectionFactory.CreateConnectionAsync().ConfigureAwait(false);
 
-        string requestSql =
-            """
-            SELECT id, name, address FROM locations
-            """;
+        string requestSql ="SELECT id, name, address FROM locations";
 
-        int paramCount = 0;
+        StringBuilder paramWhere = new StringBuilder();
+        StringBuilder paramOrderBy = new StringBuilder();
+
         string keyName = "";
         string keyAddress = "";
-        Dictionary<string, StringValues> parsedQuery = QueryHelpers.ParseQuery(request.Search);
+        var parsedQuery = QueryHelpers.ParseQuery(request.Search);
+        var conditions = new List<string>();
 
-        foreach (KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> keySearch in parsedQuery)
+        foreach (var keySearch in parsedQuery)
         {
-            switch (keySearch.Key.ToLower().Trim())
+            var key = keySearch.Key.Trim().ToLower();
+            var value = keySearch.Value.ToString();
+
+            // Пропускаем пустые параметры
+            if (string.IsNullOrEmpty(value))
+                continue;
+
+            switch (key)
             {
                 case "name":
-                    if (paramCount == 0)
-                        requestSql += " WHERE ";
-                    else
-                        requestSql += " AND ";
-                    paramCount++;
-                    requestSql += "name = @name";
-                    keyName = keySearch.Value;
+                    conditions.Add("name = @name");
+                    keyName = value;
                     break;
+
                 case "address":
-                    if (paramCount == 0)
-                        requestSql += " WHERE ";
-                    else
-                        requestSql += " AND ";
-                    paramCount++;
-                    requestSql += "address = @address";
-                    keyAddress = keySearch.Value;
+                    conditions.Add("address = @address");
+                    keyAddress = value;
                     break;
             }
         }
-        if (request.OrderBy != null && !request.OrderBy.Equals(string.Empty))
+
+        // Формируем финальную строку WHERE
+        if (conditions.Count > 0)
         {
-            string[] orderByParams = request.OrderBy.Split(' ');
-            string orderBy = "";
-            switch (orderByParams[0].ToLower())
+            paramWhere.Append(" WHERE " + string.Join(" AND ", conditions));
+        }
+
+        // Сортировка
+        if (!string.IsNullOrWhiteSpace(request.OrderBy))
+        {
+            string[] orderByParams = request.OrderBy.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            string colunn = (orderByParams[0].ToLower()) switch
             {
-                case "name":
-                    orderBy = "name";
-                    break;
-                case "address":
-                    orderBy = "address";
-                    break;
-            }
-            if(orderBy.Length > 0 && orderByParams.Length == 2)
+                "name" => "name",
+                "address" => "address",
+                _ => string.Empty
+            };
+
+            if(!string.IsNullOrEmpty(colunn))
             {
-                switch (orderByParams[1].ToLower())
-                {
-                    case "asc":
-                        orderBy += " ASC";
-                        break;
-                    case "desc":
-                        orderBy += " DESC";
-                        break;
-                }
+                // Определяем направление (по умолчанию ASC, если не указано или указано неверно)
+                string direction = (orderByParams.Length > 1 && orderByParams[1].Equals("desc", StringComparison.OrdinalIgnoreCase))
+                    ? "DESC"
+                    : "ASC";
+
+                paramOrderBy.Append($" ORDER BY {colunn} {direction}");
             }
-            if (orderBy.Length > 0)
-                requestSql += $" ORDER BY {orderBy}";
         }            
         else
-            requestSql += " ORDER BY id";
+            paramOrderBy.Append(" ORDER BY id");
 
-        requestSql += " OFFSET @skip LIMIT @take";
+        requestSql += paramWhere.ToString() + paramOrderBy.ToString() + " OFFSET @skip LIMIT @take";
 
         var locationSelectParams = new
         {

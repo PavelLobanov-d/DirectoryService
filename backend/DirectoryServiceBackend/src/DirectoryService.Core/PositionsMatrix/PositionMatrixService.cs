@@ -88,7 +88,8 @@ public class PositionMatrixService : IPositionMatrixService
                 return GeneralErrors.AlreadyExist().ToErrors();
             }
         }
-        else
+        */
+        if (positionMatrixDto.ParentPositionMatrixId != null)
         {
             var resultParent = await _positionMatrixRepository.GetByIdAsync((Guid)positionMatrixDto.ParentPositionMatrixId, cancellationToken).ConfigureAwait(false);
             if (resultParent.IsFailure)
@@ -103,7 +104,6 @@ public class PositionMatrixService : IPositionMatrixService
             }
             parent = resultParent.Value;
         }
-        */
 
         PositionMatrix positionMatrix = PositionMatrix.Create(resultPositionName.Value, resultSlug.Value, parent);
         var resultAdd = await _positionMatrixRepository.AddAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
