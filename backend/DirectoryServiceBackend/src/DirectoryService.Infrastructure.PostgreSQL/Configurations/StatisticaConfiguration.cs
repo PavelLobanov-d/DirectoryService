@@ -1,11 +1,7 @@
-﻿using DirectoryService.Domain.DepartmentPositions;
-using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.Statistics;
+﻿using DirectoryService.Domain.Statistics;
+using DirectoryService.Infrastructure.PostgreSQL.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Configurations
 {
@@ -18,7 +14,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Configurations
             builder.HasKey(v => v.Id).HasName("PK_statistics");
 
             builder.Property(v => v.dateTime)
-                .HasConversion(v => v.ToUniversalTime(), v => v);
+                .HasConversion<DateTimeUtcConverter>();
         }
     }
 }

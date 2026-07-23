@@ -5,7 +5,7 @@
 namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
 {
     /// <inheritdoc />
-    public partial class ByNotes1 : Migration
+    public partial class correctDPC5 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

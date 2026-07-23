@@ -3,7 +3,11 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
   </PropertyGroup>
-  
+
+  <PropertyGroup>
+    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Dapper" />
     <PackageReference Include="dotenv.net" />
@@ -34,6 +38,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
 
 </Project>

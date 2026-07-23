@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
 {
     /// <inheritdoc />
-    public partial class Initial : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -121,7 +121,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_department_chiefpositions", x => new { x.department_id, x.positionmatrix_id });
+                    table.PrimaryKey("PK_department_chiefpositions", x => x.department_id);
                     table.ForeignKey(
                         name: "FK_department_chiefpositions_departments_department_id",
                         column: x => x.department_id,
@@ -166,12 +166,6 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_department_chiefpositions_department_id",
-                table: "department_chiefpositions",
-                column: "department_id",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_department_chiefpositions_positionmatrix_id",

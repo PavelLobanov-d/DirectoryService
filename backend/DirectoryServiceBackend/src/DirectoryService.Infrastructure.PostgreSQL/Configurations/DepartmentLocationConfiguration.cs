@@ -1,11 +1,7 @@
 ﻿using DirectoryService.Domain.DepartmentLocations;
-using DirectoryService.Domain.Departments;
-using DirectoryService.Domain.Locations;
+using DirectoryService.Infrastructure.PostgreSQL.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Configurations;
 
@@ -17,17 +13,17 @@ internal class DepartmentLocationConfiguration : IEntityTypeConfiguration<Depart
 
         builder.HasKey(v => v.Id).HasName("PK_department_locations");
         builder.Property(v => v.Id)
-            .HasConversion(v => v.Value, id => new DepartmentLocationId(id))
+            .HasConversion<DepartmentLocationIdConverter>()
             .IsRequired()
             .HasColumnName("id");
 
         builder.Property(v => v.DepartmentId)
-            .HasConversion(v => v.Value, departmentid => new DepartmentId(departmentid))
+            .HasConversion<DepartmentIdConverter>()
             .HasColumnName("department_id")
             .IsRequired();
 
         builder.Property(v => v.LocationId)
-            .HasConversion(v => v.Value, locationid => new LocationId(locationid))
+            .HasConversion<LocationIdConverter>()
             .HasColumnName("location_id")
             .IsRequired();
 

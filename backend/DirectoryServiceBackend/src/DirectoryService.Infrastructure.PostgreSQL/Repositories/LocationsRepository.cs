@@ -1,27 +1,25 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
-using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Locations;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 
 internal class LocationsRepository : ILocationsRepository
 {
     private readonly IDirectoryServiceDbContext _dbContext;
-    public LocationsRepository(IDirectoryServiceDbContext dbContext)
+    private readonly ILogger _logger;
+
+    public LocationsRepository(IDirectoryServiceDbContext dbContext, ILogger<LocationsRepository> logger)
     {
         _dbContext = dbContext;
+        _logger = logger;
     }
     public async Task<Result<Guid, Error>> AddAsync(Location location, CancellationToken cancellationToken = default)
     {
@@ -36,15 +34,15 @@ internal class LocationsRepository : ILocationsRepository
             .ConfigureAwait(false);
         if (obj != null)
         {
-            var result = _dbContext.Locations.Remove(obj);
-            return result != null;
+            _dbContext.Locations.Remove(obj);
+            return true;
         }
         return false;
     }
     public async Task<Result<bool, Error>> DeleteAsync(Location location, CancellationToken cancellationToken = default)
     {
-        var result = _dbContext.Locations.Remove(location);
-        return result != null;
+        _dbContext.Locations.Remove(location);
+        return true;
     }
     public async Task<Result<List<Location>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken = default)
     {
@@ -66,9 +64,52 @@ internal class LocationsRepository : ILocationsRepository
             }
         }
 
+        if (request.OrderBy != null && !request.OrderBy.Equals(string.Empty))
+        {
+            string[] param = request.OrderBy.Split(' ');
+            string field = param[0];
+            string orderType = "";
+            if (param.Length > 1)
+            {
+                orderType = param[1];
+            }
+            if(orderType.ToLowerInvariant().StartsWith("desc", StringComparison.OrdinalIgnoreCase))
+            {
+                switch (field.ToLowerInvariant())
+                {
+                    case "name":
+                        query = query.OrderByDescending(p => p.Name);
+                        break;
+                    case "address":
+                        query = query.OrderByDescending(p => p.Address);
+                        break;
+                }
+            }
+            else if(orderType.ToLowerInvariant().StartsWith("asc", StringComparison.OrdinalIgnoreCase) || orderType == "")
+            {
+                switch (field.ToLowerInvariant())
+                {
+                    case "name":
+                        query = query.OrderBy(p => p.Name);
+                        break;
+                    case "address":
+                        query = query.OrderBy(p => p.Address);
+                        break;
+                }
+            }
+        }
+        else
+            query = query.OrderBy(p => p.Id);
+
+        if (request.Page != null && request.PageSize != null)
+        {
+            int skiprecords = ((int)request.Page - 1) * (int)request.PageSize;
+            query = query
+            .Skip(skiprecords)
+            .Take((int)request.PageSize);
+        }
+
         return await query
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
@@ -77,6 +118,13 @@ internal class LocationsRepository : ILocationsRepository
         return await _dbContext.Locations
             .Where(l => l.Id == new LocationId(locationId))
             .SingleOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+    public async Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Locations
+            .Where(l => locationIds.Contains(l.Id))
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
     public async Task<Result<bool, Error>> HasNameAsync(string name, Guid? excludeId, CancellationToken cancellationToken = default)

@@ -29,4 +29,9 @@ public class GeneralErrors
     {
         return Error.Failure("server.error", message);
     }
+    public static Error OtherError(string message)
+    {
+        return Error.Failure("other.error", message);
+    }
+
 }

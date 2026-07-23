@@ -9,6 +9,8 @@ using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.Statistics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -19,11 +21,8 @@ namespace DirectoryService.Infrastructure.PostgreSQL;
 
 public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext
 {
-    private readonly string _connectionString;
-    public DirectoryServiceDbContext(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
+    
+    private readonly string _connectionString = null!;
     public DirectoryServiceDbContext(DbContextOptions<DirectoryServiceDbContext> options)
     : base(options)
     {
@@ -33,7 +32,22 @@ public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext
     {
         base.OnConfiguring(optionsBuilder);
 
-        optionsBuilder.UseNpgsql(_connectionString);
+        if (!optionsBuilder.IsConfigured && !string.IsNullOrEmpty(_connectionString))
+        {
+            optionsBuilder.UseNpgsql(_connectionString);
+        }
+
+        if (!optionsBuilder.IsConfigured)
+        {
+            dotenv.net.DotEnv.Load();
+            string? envConnectionString = Environment.GetEnvironmentVariable("DIRECTORY_SERVICE_CONNECTIONSTRING");
+
+            if (!string.IsNullOrEmpty(envConnectionString))
+            {
+                optionsBuilder.UseNpgsql(envConnectionString);
+            }
+        }
+        
         optionsBuilder.EnableSensitiveDataLogging();
         optionsBuilder.LogTo(Console.WriteLine);
     }

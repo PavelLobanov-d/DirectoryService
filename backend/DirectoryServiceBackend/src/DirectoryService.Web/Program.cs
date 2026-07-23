@@ -5,6 +5,7 @@ using DirectoryService.Infrastructure.PostgreSQL;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using DirectoryService.Web;
 using dotenv.net;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
 
@@ -21,10 +22,15 @@ if (connectionString == null)
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>(_ => new NpgsqlConnectionFactory(connectionString));
+builder.Services.AddDbContext<DirectoryServiceDbContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+});
+builder.Services.AddScoped<IDirectoryServiceDbContext>(provider =>
+    provider.GetRequiredService<DirectoryServiceDbContext>());
 
 builder.Services.AddProgramDependencies();
-builder.Services.AddScoped<GlobalStatistics>();
-builder.Services.AddScoped<IDirectoryServiceDbContext, DirectoryServiceDbContext>(_ => new DirectoryServiceDbContext(connectionString));
+
 
 WebApplication app = builder.Build();
 

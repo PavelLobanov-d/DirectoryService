@@ -3,10 +3,6 @@ using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
-using System;
-using System.Collections.Generic;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
 
 namespace DirectoryService.Domain.PositionsMatrix;
 
@@ -43,7 +39,16 @@ public sealed class PositionMatrix
     /// иерархия родительских Slug'ов
     /// </summary>
     public PathSlug? PathSlug { get; private set; }
-    public PathSlug PathSlugFull => PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
+    public PathSlug PathSlugFull
+    {
+        get
+        {
+            var result = PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
+            if (result.IsFailure)
+                throw new InvalidOperationException("Не удалось создать PathSlugFull.");
+            return result.Value;
+        }
+    }
     /// <summary>
     /// вышестоящая должность
     /// </summary>
@@ -66,6 +71,7 @@ public sealed class PositionMatrix
 
     private readonly List<DepartmentChiefPosition> _departmentChiefPositions = [];
     public IReadOnlyList<DepartmentChiefPosition> DepartmentChiefPositions => _departmentChiefPositions;
+    //public ICollection<DepartmentChiefPosition> DepartmentChiefPositions { get; set; } = new List<DepartmentChiefPosition>();
 
     /// <summary>
     /// добавить матричную должность
@@ -78,8 +84,7 @@ public sealed class PositionMatrix
     public static PositionMatrix Create(
         PositionName name, 
         Slug slug, 
-        PositionMatrix? parent,
-        GlobalStatistics globalstats)
+        PositionMatrix? parent)
     {
         PositionMatrix newObject = new PositionMatrix(
             new PositionMatrixId(Guid.CreateVersion7()), 
@@ -88,42 +93,41 @@ public sealed class PositionMatrix
             parent?.Id, 
             parent?.PathSlugFull);
         newObject._parent = parent;
-
-        globalstats.AddStatistica(
-            newObject.Id.Value, 
-            newObject.GetType().Name, 
-            Statistica.Level.INFO, 
-            Statistica.Action.CREATE, 
-            $"Создание матричной должности {newObject.Name.Value}");
-
-        if(parent != null)
+        if (parent != null)
         {
             parent._childs.Add(newObject);
-            globalstats.AddStatistica(
-                newObject.Id.Value, 
-                newObject.GetType().Name, 
-                Statistica.Level.INFO, 
-                Statistica.Action.ATTACH, 
-                $"Родительская должность: {parent.Name.Value}",
-                parent.Id.Value,
-                parent.GetType().Name);
         }
 
         return newObject;
     }
-
+    public void SetParent(PositionMatrix parent)
+    {
+        if(this.ParentId != parent.Id)
+            _parent = parent;
+        if(!_parent.Childs.Any(v => v.Id == this.Id))
+            _parent.AddChild(this);
+    }
+    public void AddChild(PositionMatrix child)
+    {
+        child.SetParent(this);
+    }
+    public void AddChilds(List<PositionMatrix> childs)
+    {
+        foreach(var child in childs)
+        {
+            child.SetParent(this);
+        }
+    }
     /// <summary>
     /// заменить родителя (null - становится головной должностью)
     /// </summary>
     /// <param name="newParent"></param>
     /// <returns>true, если были изменения</returns>
-    public bool Move(
-        PositionMatrix? newParent,
-        GlobalStatistics globalstats)
+    public bool Move(PositionMatrix newParent)
     {
         //надо сделать пересчёт частных должностей, привязанных к этой матричной
 
-        if (ParentId == newParent?.Id)
+        if (ParentId == newParent.Id)
         {
             return false;
         }
@@ -131,35 +135,15 @@ public sealed class PositionMatrix
         if(_parent != null)
         {
             _parent._childs.Remove(this);
-
-            globalstats.AddStatistica(
-                Id.Value, 
-                this.GetType().Name,
-                Statistica.Level.INFO,
-                Statistica.Action.DETACH,
-                $"Отсоединён от {PathSlug.Value}",
-                _parent.Id.Value,
-                _parent.GetType().Name);
         }
 
         if(newParent != null)
         {
-            ParentId = newParent.Id;
-            PathSlug = newParent.PathSlugFull;
             newParent._childs.Add(this);
-
-            globalstats.AddStatistica(
-                Id.Value, 
-                this.GetType().Name, 
-                Statistica.Level.INFO, 
-                Statistica.Action.ATTACH, 
-                $"Присоединён к {newParent.PathSlugFull.Value}", 
-                newParent.Id.Value, 
-                newParent.GetType().Name);
         }
 
         _parent = newParent;
-        return refresh(globalstats);
+        return refresh();
     }
 
 
@@ -167,7 +151,7 @@ public sealed class PositionMatrix
     /// пересчёт матричной должности
     /// </summary>
     /// <returns>true, если были изменения</returns>
-    private bool refresh(GlobalStatistics globalstats)
+    private bool refresh()
     {
         bool result = false;
 
@@ -177,12 +161,6 @@ public sealed class PositionMatrix
             if (PathSlug != _parent.PathSlugFull)
             {
                 PathSlug = _parent.PathSlugFull;
-                globalstats.AddStatistica(
-                    Id.Value, 
-                    this.GetType().Name, 
-                    Statistica.Level.FINEST, 
-                    Statistica.Action.UPDATE, 
-                    $"Переподчинение {PathSlug.Value}");
                 result = true;
             }
         }
@@ -191,15 +169,6 @@ public sealed class PositionMatrix
             if (ParentId != null)
             {
                 ParentId = null;
-                if (PathSlug != null)
-                {
-                    globalstats.AddStatistica(
-                        Id.Value, 
-                        this.GetType().Name, 
-                        Statistica.Level.FINEST, 
-                        Statistica.Action.UPDATE, 
-                        $"Становится корневым");
-                }
                 result = true;
             }
             PathSlug = null;
@@ -207,7 +176,7 @@ public sealed class PositionMatrix
 
         if (_childs != null && _childs.Select(child =>
             {
-                bool v = child.refresh(globalstats);
+                bool v = child.refresh();
                 return v;
             }).Contains(true))
             result = true;
@@ -222,37 +191,33 @@ public sealed class PositionMatrix
     /// <returns>true, если были изменения</returns>
     public bool Update(PositionName? name,
         Slug? slug,
-        GlobalStatistics globalstats)
+        PathSlug? pathSlug)
     {
         bool result = false;
-        if (name != null && Name != name)
-        {
-            validationName(name);
-            globalstats.AddStatistica(
-                Id.Value, 
-                this.GetType().Name, 
-                Statistica.Level.INFO, 
-                Statistica.Action.UPDATE, 
-                $"Название изменено с {Name.Value} на {name.Value}");
-            Name = name;
-            result = true;
-        }
         if (slug != null && Slug != slug)
         {
-            globalstats.AddStatistica(
-                Id.Value, 
-                this.GetType().Name, 
-                Statistica.Level.INFO, 
-                Statistica.Action.UPDATE, 
-                $"Идентификатор изменен с {Slug.Value} на {slug.Value}");
             Slug = slug;
-
+            result = true;
+        }
+        if (pathSlug != null && PathSlug != pathSlug)
+        {
+            PathSlug = pathSlug;
+            result = true;
+        }
+        if(result)
+        {
             if (_childs != null && _childs.Select(child =>
             {
-                bool v = child.refresh(globalstats);
+                bool v = child.refresh();
                 return v;
             }).Contains(true))
                 result = true;
+        }
+
+        if (name != null && Name != name)
+        {
+            Name = name;
+            result = true;
         }
 
         return result;

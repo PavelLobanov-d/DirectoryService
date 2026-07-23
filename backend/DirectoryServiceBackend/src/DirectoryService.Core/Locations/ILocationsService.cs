@@ -34,7 +34,8 @@ public interface ILocationsService
     /// <param name="locationId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Result<Location, Error>> GetByIdAsync(Guid locationId, CancellationToken cancellationToken);
+    public Task<Result<Location?, Error>> GetByIdAsync(Guid locationId, CancellationToken cancellationToken);
+    public Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken);
     /// <summary>
     /// получить коллекцию локаций
     /// </summary>

@@ -1,4 +1,5 @@
-﻿using DirectoryService.Domain.DepartmentChiefPositions;
+﻿using CSharpFunctionalExtensions;
+using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.GlobalStatisticsClass;
@@ -6,11 +7,6 @@ using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryService.Domain.Departments;
 
@@ -37,7 +33,17 @@ public sealed class Department
     public DepartmentName Name { get; private set; }
     public Slug Slug { get; private set; }
     public PathSlug? PathSlug { get; private set; } = null;
-    public PathSlug PathSlugFull => PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
+    public PathSlug PathSlugFull
+    {
+        get
+        {
+            var result = PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
+            if (result.IsFailure)
+                throw new InvalidOperationException("Не удалось создать PathSlugFull.");
+            return result.Value;
+        }
+    }
+
     public DepartmentId? ParentId { get; private set; }
     private Department? _parent = null;
     /// <summary>
@@ -83,8 +89,7 @@ public sealed class Department
         DepartmentName name,
         Slug slug,
         Department? parent,
-        PositionMatrix chiefPosition,
-        GlobalStatistics globalstats)
+        PositionMatrix chiefPosition)
     {
         if (parent == null)
         {
@@ -116,38 +121,40 @@ public sealed class Department
             objectDP);
 
         newObject.DepartmentChiefPosition = objectDP;
-
-        globalstats.AddStatistica(
-            newObject.Id.Value, 
-            newObject.GetType().Name, 
-            Statistica.Level.INFO, 
-            Statistica.Action.CREATE, 
-            $"Создание департамента {newObject.Name.Value}");
-
         newObject._parent = parent;
         if (parent != null)
         {
             parent._childs.Add(newObject);
-            globalstats.AddStatistica(
-                newObject.Id.Value, 
-                newObject.GetType().Name, 
-                Statistica.Level.INFO, 
-                Statistica.Action.ATTACH, 
-                $"Вышестоящий департамент: {parent.Name.Value}", 
-                parent.Id.Value, 
-                parent.GetType().Name);
         }
 
         return newObject;
     }
+    public void SetParent(Department parent)
+    {
+        if (this.ParentId != parent.Id)
+            _parent = parent;
+        if (!_parent.Childs.Any(v => v.Id == this.Id))
+            _parent.AddChild(this);
+    }
+    public void AddChild(Department child)
+    {
+        child.SetParent(this);
+    }
+    public void AddChilds(List<Department> childs)
+    {
+        foreach (var child in childs)
+        {
+            child.SetParent(this);
+        }
+    }
+
     /// <summary>
     /// добавить связку департамент-должность
     /// </summary>
     /// <param name="positionMatrix"></param>
     /// <returns></returns>
     /// <exception cref="DSException"></exception>
-    public DepartmentPosition LinkPosition(PositionMatrix positionMatrix,
-        GlobalStatistics globalstats)
+    public DepartmentPosition LinkPosition(PositionMatrix positionMatrix)
     {
         if(!positionMatrix.isParent(this.ChiefPositionMatrix))
         {
@@ -155,14 +162,6 @@ public sealed class Department
         }
         DepartmentPosition newLink = new DepartmentPosition(this, positionMatrix);
         _departmentPositions.Add(newLink);
-        globalstats.AddStatistica(
-            positionMatrix.Id.Value, 
-            positionMatrix.GetType().Name, 
-            Statistica.Level.INFO, 
-            Statistica.Action.UPDATE, 
-            $"Присоединена должность {positionMatrix.Name.Value}", 
-            Id.Value,
-            GetType().Name);
 
         return newLink;
     }
@@ -173,8 +172,7 @@ public sealed class Department
     /// <param name="location"></param>
     /// <returns></returns>
     /// <exception cref="DSException"></exception>
-    public DepartmentLocation LinkLocation(Location location,
-        GlobalStatistics globalstats)
+    public DepartmentLocation LinkLocation(Location location)
     {
         foreach (DepartmentLocation loc in _departmentLocations)
         {
@@ -185,16 +183,34 @@ public sealed class Department
         }
 
         DepartmentLocation newLink = new DepartmentLocation(this, location);
-        this._departmentLocations.Add(newLink);
-        globalstats.AddStatistica(
-            location.Id.Value,
-            location.GetType().Name,
-            Statistica.Level.INFO,
-            Statistica.Action.UPDATE,
-            $"Присоединена локация {location.Name.Value}",
-            Id.Value,
-            GetType().Name);
+        _departmentLocations.Add(newLink);
+
         return newLink;
+    }
+    /// <summary>
+    /// добавить коллекцию связей с локациями
+    /// </summary>
+    /// <param name="locations"></param>
+    /// <returns></returns>
+    public IReadOnlyList<DepartmentLocation> LinkLocations(IEnumerable<Location> locations)
+    {
+        foreach (Location loc in locations)
+            LinkLocation(loc);
+
+        return this.DepartmentLocations;
+    }
+
+    public bool DetachLocation(Location location)
+    {
+        foreach (DepartmentLocation loc in _departmentLocations)
+        {
+            if (loc.Location.Id == location.Id)
+            {
+                _departmentLocations.Remove(loc);
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -202,100 +218,61 @@ public sealed class Department
     /// </summary>
     /// <param name="newParent"></param>
     /// <returns>true, если были изменения</returns>
-    public bool Move(Department? newParent,
-        GlobalStatistics globalstats)
+    public bool Move(Department? newParent)
     {
         if ((_parent == null ? Guid.Empty : _parent.Id.Value) == (newParent == null ? Guid.Empty : newParent.Id.Value))
         {
             return false;
         }
 
-        if (_parent != null)
-        {
-            globalstats.AddStatistica(
-                Id.Value,
-                this.GetType().Name,
-                Statistica.Level.INFO,
-                Statistica.Action.DETACH,
-                $"Отсоединён от {PathSlug.Value}",
-                _parent.Id.Value,
-                _parent.GetType().Name);
-        }
-
         if (newParent != null)
         {
             ParentId = newParent.Id;
             PathSlug = newParent.PathSlugFull;
-            globalstats.AddStatistica(
-                Id.Value, 
-                this.GetType().Name, 
-                Statistica.Level.INFO, 
-                Statistica.Action.ATTACH, 
-                $"Присоединён к {newParent.PathSlugFull.Value}", 
-                newParent.Id.Value, 
-                newParent.GetType().Name);
         }
         bool result = false;
         Department? oldParent = _parent; 
         _parent = newParent;
 
-        if(oldParent != null && oldParent.refresh(globalstats))
+        if(oldParent != null && oldParent.refresh())
             result = true;
-        if(this.refresh(globalstats))
+        if(this.refresh())
             result = true;
         return result;
     }
     /// <summary>
     /// изменить
     /// </summary>
-    /// <param name="name"></param>
-    /// <param name="slug"></param>
+    /// <param name="newName"></param>
+    /// <param name="newSlug"></param>
+    /// <param name="newPathSlug"></param>
+    /// <param name="newChiefPositionMatrix"></param>
     /// <returns>true, если были изменения</returns>
-    public bool Update(DepartmentName? newName,
+    public bool Update(
+        DepartmentName? newName,
         Slug? newSlug,
-        PositionMatrix? newChiefPosition,
-        GlobalStatistics globalstats)
+        DepartmentChiefPosition? newDepartmentChiefPosition)
     {
         bool result = false;
         if (newName != null && newName != Name)
         {
-            globalstats.AddStatistica(
-                Id.Value, 
-                this.GetType().Name, 
-                Statistica.Level.FINE, 
-                Statistica.Action.UPDATE, 
-                $"Название изменено с {Name.Value} на {newName.Value}");
             Name = newName;
             result = true;
         }
-        if (newSlug != null && newSlug != Slug)
+        if(newDepartmentChiefPosition != null && DepartmentChiefPosition.PositionMatrixId != newDepartmentChiefPosition.PositionMatrixId)
         {
-            globalstats.AddStatistica(
-                Id.Value, 
-                this.GetType().Name, 
-                Statistica.Level.FINE, 
-                Statistica.Action.UPDATE, 
-                $"Идентификатор изменен с {Slug.Value} на {newSlug.Value}");
-            Slug = newSlug;
+            DepartmentChiefPosition = newDepartmentChiefPosition;
+        }
+        if ((newSlug != null && newSlug != Slug) || (this.Parent != null && this.Parent.PathSlugFull != PathSlug))
+        {
+            if (newSlug != null && newSlug != Slug)
+                Slug = newSlug;
             if (Childs != null && Childs.Select(child =>
             {
-                bool v = child.refresh(globalstats);
+                bool v = child.refresh();
                 return v;
             }).Contains(true))
                 result = true;
-        }
-        if (newChiefPosition != null && newChiefPosition.Id != ChiefPositionMatrix.Id)
-        {
-            globalstats.AddStatistica(
-                Id.Value,
-                this.GetType().Name,
-                Statistica.Level.FINE,
-                Statistica.Action.UPDATE,
-                $"Должность руководителя изменена с {DepartmentChiefPosition.PositionMatrix.Name} на {newChiefPosition.Name}");
-
-            DepartmentChiefPosition objectDP = DepartmentChiefPosition.Create(this, newChiefPosition);
-            this.DepartmentChiefPosition.Delete();
-            this.DepartmentChiefPosition = objectDP;
         }
 
         return result;
@@ -305,7 +282,7 @@ public sealed class Department
     /// пересчёт
     /// </summary>
     /// <returns>true, если были изменения</returns>
-    private bool refresh(GlobalStatistics globalstats)
+    private bool refresh()
     {
         bool result = false;
 
@@ -315,30 +292,13 @@ public sealed class Department
             if (PathSlug != _parent.PathSlugFull)
             {
                 PathSlug = _parent.PathSlugFull;
-                globalstats.AddStatistica(
-                    Id.Value, 
-                    this.GetType().Name, 
-                    Statistica.Level.FINEST, 
-                    Statistica.Action.UPDATE, 
-                    $"Переподчинение {PathSlug.Value}");
                 result = true;
             }
         }
         else
         {
             if (ParentId != null)
-            {
-                if (PathSlug != null)
-                {
-                    globalstats.AddStatistica(
-                        Id.Value, 
-                        this.GetType().Name, 
-                        Statistica.Level.FINEST, 
-                        Statistica.Action.UPDATE, 
-                        $"Становится корневым");
-                }
                 result = true;
-            }
             ParentId = null;
             PathSlug = null;
         }
@@ -349,7 +309,7 @@ public sealed class Department
             if (child.ParentId != this.Id)
                 v = _childs.Remove(child);
             else
-                v = child.refresh(globalstats);
+                v = child.refresh();
             return v;
         }).Contains(true))
             result = true;

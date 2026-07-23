@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using CSharpFunctionalExtensions;
+using DirectoryService.Domain.shared;
+using System.Text.RegularExpressions;
 
 namespace DirectoryService.Domain.PositionsMatrix;
 
-public record PositionName
+public partial record PositionName
 {
     public const int NAME_MIN_LENGHT = 3;
     public const int NAME_MAX_LENGHT = 150;
@@ -17,18 +17,24 @@ public record PositionName
         Value = value;
     }
 
-    public static PositionName Create(string value)
+    public static Result<PositionName, Error> Create(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        string normalized = _manySpaces.Replace(input: value.Trim(), " ");
+
+        if (string.IsNullOrWhiteSpace(normalized))
         {
-            throw new ArgumentNullException(nameof(value));
+            return GeneralErrors.ValueIsRequired("название");
         }
 
-        if (value.Length is < NAME_MIN_LENGHT or > NAME_MAX_LENGHT)
+        if (normalized.Length is < NAME_MIN_LENGHT or > NAME_MAX_LENGHT)
         {
-            throw new ArgumentOutOfRangeException(nameof(value));
+            return GeneralErrors.ValueIsInvalid("название");
         }
 
-        return new PositionName(value);
+        return new PositionName(normalized);
     }
+
+    [GeneratedRegex("\\s+", options: RegexOptions.Compiled)]
+    private static partial Regex _manySpaces { get; }
+    public override string ToString() => Value.ToString();
 }
