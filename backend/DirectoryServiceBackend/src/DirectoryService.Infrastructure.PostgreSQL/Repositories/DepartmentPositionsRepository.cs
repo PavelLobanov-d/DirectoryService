@@ -50,8 +50,8 @@ internal class DepartmentPositionsRepository : IDepartmentPositionsRepository
             .ConfigureAwait(false);
         if (obj != null)
         {
-            var result = _dbContext.DepartmentPositions.Remove(obj);
-            return result != null;
+            _dbContext.DepartmentPositions.Remove(obj);
+            return true;
         }
         return false;
     }

@@ -192,6 +192,18 @@ public sealed class Department
 
         return newLink;
     }
+    /// <summary>
+    /// добавить коллекцию связей с локациями
+    /// </summary>
+    /// <param name="locations"></param>
+    /// <returns></returns>
+    public IReadOnlyList<DepartmentLocation> LinkLocations(IEnumerable<Location> locations)
+    {
+        foreach (Location loc in locations)
+            LinkLocation(loc);
+
+        return this.DepartmentLocations;
+    }
 
     public bool DetachLocation(Location location)
     {

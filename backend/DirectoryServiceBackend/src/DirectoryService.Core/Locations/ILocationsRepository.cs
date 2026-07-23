@@ -44,6 +44,7 @@ public interface ILocationsRepository
     /// <param name="cancellationToken"></param>
     /// <returns>объект Location</returns>
     Task<Result<Location?, Error>> GetByIdAsync(Guid locationId, CancellationToken cancellationToken = default);
+    Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken = default);
     /// <summary>
     /// получить коллекцию локаций, отвечающую условию
     /// </summary>

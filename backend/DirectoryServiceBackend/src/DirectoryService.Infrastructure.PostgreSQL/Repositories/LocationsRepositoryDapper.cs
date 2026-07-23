@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using System.Xml.Linq;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 internal class LocationsRepositoryDapper : ILocationsRepository
@@ -101,7 +102,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
 
         foreach (KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues> keySearch in parsedQuery)
         {
-            switch (keySearch.Key.ToLower())
+            switch (keySearch.Key.ToLower().Trim())
             {
                 case "name":
                     if (paramCount == 0)
@@ -124,15 +125,42 @@ internal class LocationsRepositoryDapper : ILocationsRepository
             }
         }
         if (request.OrderBy != null && !request.OrderBy.Equals(string.Empty))
-            requestSql += $" ORDER BY {request.OrderBy}";
+        {
+            string[] orderByParams = request.OrderBy.Split(' ');
+            string orderBy = "";
+            switch (orderByParams[0].ToLower())
+            {
+                case "name":
+                    orderBy = "name";
+                    break;
+                case "address":
+                    orderBy = "address";
+                    break;
+            }
+            if(orderBy.Length > 0 && orderByParams.Length == 2)
+            {
+                switch (orderByParams[1].ToLower())
+                {
+                    case "asc":
+                        orderBy += " ASC";
+                        break;
+                    case "desc":
+                        orderBy += " DESC";
+                        break;
+                }
+            }
+            if (orderBy.Length > 0)
+                requestSql += $" ORDER BY {orderBy}";
+        }            
         else
-            requestSql += $" ORDER BY id";
+            requestSql += " ORDER BY id";
+
         requestSql += " OFFSET @skip LIMIT @take";
 
         var locationSelectParams = new
         {
-            name = keyName,
-            address = keyAddress,
+            name = keyName.Trim(),
+            address = keyAddress.Trim(),
             skip = (request.Page - 1) * request.PageSize,
             take = request.PageSize,
         };
@@ -168,6 +196,30 @@ internal class LocationsRepositoryDapper : ILocationsRepository
         {
             _logger.LogError(ex, "Fail to select Location");
             return GeneralErrors.Failure("Ошибка выбора локации: " + ex.Message);
+        }
+    }
+    public async Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken = default)
+    {
+        using var connection = await _connectionFactory.CreateConnectionAsync().ConfigureAwait(false);
+        string request =
+            """
+            SELECT id, name, address FROM locations WHERE id = ANY(@ids)
+            """;
+        var locationSelectByIdsParams = new
+        {
+            ids = locationIds
+        };
+
+        try
+        {
+            return (await connection.QueryAsync<Location>(request, locationSelectByIdsParams)
+                .ConfigureAwait(false))
+                .ToList<Location>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fail to select Locations");
+            return GeneralErrors.Failure("Ошибка выбора локаций: " + ex.Message);
         }
     }
     public async Task<Result<bool, Error>> HasNameAsync(string name, Guid? excludeId, CancellationToken cancellationToken = default)

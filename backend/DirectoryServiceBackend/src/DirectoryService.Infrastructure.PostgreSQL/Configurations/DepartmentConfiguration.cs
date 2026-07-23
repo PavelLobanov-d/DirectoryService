@@ -57,7 +57,7 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
             .HasForeignKey(dl => dl.DepartmentId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Cascade);
-       
+
         builder.HasOne(dcp => dcp.DepartmentChiefPosition)
             .WithOne(v => v.Department)
             .HasForeignKey<DepartmentChiefPosition>(v => v.DepartmentId)

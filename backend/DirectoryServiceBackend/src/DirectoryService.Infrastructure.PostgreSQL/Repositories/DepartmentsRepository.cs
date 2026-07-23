@@ -37,15 +37,15 @@ public class DepartmentsRepository : IDepartmentsRepository
         .ConfigureAwait(false);
         if (obj != null)
         {
-            var result = _dbContext.Departments.Remove(obj);
-            return result != null;
+            _dbContext.Departments.Remove(obj);
+            return true;
         }
         return false;
     }
     public async Task<Result<bool, Error>> DeleteAsync(Department department, CancellationToken cancellationToken = default)
     {
-        var result = _dbContext.Departments.Remove(department);
-        return result != null;
+        _dbContext.Departments.Remove(department);
+        return true;
     }
 
     public async Task<Result<List<Department>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken = default)

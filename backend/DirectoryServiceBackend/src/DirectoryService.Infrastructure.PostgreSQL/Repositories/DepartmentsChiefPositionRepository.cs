@@ -26,8 +26,8 @@ internal class DepartmentsChiefPositionRepository : IDepartmentsChiefPositionRep
     }
     public async Task<Result<bool, Error>> DeleteAsync(DepartmentChiefPosition departmentChiefPosition, CancellationToken cancellationToken = default)
     {
-        var result = _dbContext.DepartmentChiefPositions.Remove(departmentChiefPosition);
-        return result != null;
+        _dbContext.DepartmentChiefPositions.Remove(departmentChiefPosition);
+        return true;
     }
     public async Task<Result<DepartmentChiefPosition?, Error>> GetByDepartmentIdAsync(Guid departmentId, CancellationToken cancellationToken = default)
     {

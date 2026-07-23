@@ -130,6 +130,21 @@ public class LocationsService: ILocationsService
         }
         return resultLocation.Value;
     }
+    public async Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken)
+    {
+        var resultLocation = await _locationsRepository.GetByIdsAsync(locationIds, cancellationToken).ConfigureAwait(false);
+        if (resultLocation.IsFailure)
+        {
+            _logger.LogError("Request error");
+            return GeneralErrors.Failure("ошибка запроса поиска локаций");
+        }
+        if (resultLocation.Value.Count < locationIds.ToList().Count)
+        {
+            return GeneralErrors.ValueIsInvalid("не найдены локации");
+        }
+
+        return resultLocation.Value;
+    }
     /// <summary>
     /// получить коллекцию локаций по условию
     /// </summary>

@@ -43,8 +43,8 @@ public class PositionMatrixRepository : IPositionMatrixRepository
     }
     public async Task<Result<bool, Error>> DeleteAsync(PositionMatrix positionMatrix, CancellationToken cancellationToken = default)
     {
-        var result = _dbContext.PositionsMatrix.Remove(positionMatrix);
-        return result != null;
+        _dbContext.PositionsMatrix.Remove(positionMatrix);
+        return true;
     }
 
     public async Task<Result<List<PositionMatrix>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken = default)

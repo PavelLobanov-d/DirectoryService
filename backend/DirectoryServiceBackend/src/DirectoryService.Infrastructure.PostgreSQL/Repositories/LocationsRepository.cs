@@ -34,15 +34,15 @@ internal class LocationsRepository : ILocationsRepository
             .ConfigureAwait(false);
         if (obj != null)
         {
-            var result = _dbContext.Locations.Remove(obj);
-            return result != null;
+            _dbContext.Locations.Remove(obj);
+            return true;
         }
         return false;
     }
     public async Task<Result<bool, Error>> DeleteAsync(Location location, CancellationToken cancellationToken = default)
     {
-        var result = _dbContext.Locations.Remove(location);
-        return result != null;
+        _dbContext.Locations.Remove(location);
+        return true;
     }
     public async Task<Result<List<Location>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken = default)
     {
@@ -118,6 +118,13 @@ internal class LocationsRepository : ILocationsRepository
         return await _dbContext.Locations
             .Where(l => l.Id == new LocationId(locationId))
             .SingleOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+    public async Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Locations
+            .Where(l => locationIds.Contains(l.Id))
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
     public async Task<Result<bool, Error>> HasNameAsync(string name, Guid? excludeId, CancellationToken cancellationToken = default)

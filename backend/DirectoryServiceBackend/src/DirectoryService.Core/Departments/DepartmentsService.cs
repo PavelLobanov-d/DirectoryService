@@ -189,19 +189,14 @@ public class DepartmentsService : IDepartmentsService
 
         Department department = Department.Create(resultDepartmentName.Value, resultSlug.Value, parent, positionChief);
 
-        //проверка локаций
-        foreach (Guid locationId in departmentDto.LocationsId)
+        //локации
+        if (departmentDto.LocationsId.Count > 0)
         {
-            var resultLocation = await _locationsService.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
-            if (resultLocation.IsFailure)
-            {
-                _logger.LogError("Error _locationsService.GetByIdAsync");
-                return GeneralErrors.Failure("ошибка получения локации").ToErrors();
-            }
-            if (resultLocation.Value == null)
-                return GeneralErrors.NotFound(locationId, "locationId").ToErrors();
+            var resultLocations = await _locationsService.GetByIdsAsync(departmentDto.LocationsId, cancellationToken).ConfigureAwait(false);
+            if(resultLocations.IsFailure)
+                return resultLocations.Error.ToErrors();
 
-            department.LinkLocation(resultLocation.Value);
+            department.LinkLocations(resultLocations.Value);
         }
 
         var resultAdd = await _departmentRepository.AddAsync(department, cancellationToken).ConfigureAwait(false);
