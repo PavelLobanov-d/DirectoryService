@@ -36,7 +36,7 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(resultSave.Error);
         }
-        return Ok(result.Value);
+        return Ok(new { result.Value });
     }
     [HttpGet]
     public async Task<IActionResult> GetAsync(
@@ -52,8 +52,54 @@ public class DepartmentController : ControllerBase
         {
             return NotFound();
         }
-        return Ok($"DepartmentService.GetAsync : {result.Value.Count}");
+        return Ok(new { result.Value });
     }
+    [HttpPatch("{departmentId:guid}/locations/{locationId:guid}")]
+    public async Task<IActionResult> LinkLocationAsync(
+        [FromRoute] Guid departmentId,
+        [FromRoute] Guid locationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _departmentService.LinkLocationAsync(departmentId, locationId, cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            return BadRequest(result.Error);
+        }
+
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+
+        return Ok(new { result.Value });
+    }
+
+    [HttpDelete("{departmentId:guid}/locations/{locationId:guid}")]
+    public async Task<IActionResult> DetachLocationAsync(
+        [FromRoute] Guid departmentId,
+        [FromRoute] Guid locationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _departmentService.DetachLocationAsync(departmentId, locationId, cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            return BadRequest(result.Error);
+        }
+        if (!result.Value)
+        {
+            return BadRequest(result.Error);
+        }
+
+        var resultSave = await _departmentService.SaveAsync(cancellationToken);
+        if (resultSave.IsFailure)
+        {
+            return BadRequest(resultSave.Error);
+        }
+
+        return Ok(new { result.Value });
+    }
+
     [HttpGet("{departmentId:guid}")]
     public async Task<IActionResult> GetByIdAsync(
         [FromRoute] Guid departmentId,
@@ -68,10 +114,11 @@ public class DepartmentController : ControllerBase
         {
             return NotFound();
         }
-        return Ok($"DepartmentService.GetByIdAsync : {result.Value.Name}");
+        return Ok(new { result.Value });
     }
+
     [HttpPut("{departmentId:guid}")]
-    public async Task<IActionResult> Update(
+    public async Task<IActionResult> UpdateAsync(
         [FromRoute] Guid departmentId,
         [FromBody] UpdateDepartmentDto request,
         CancellationToken cancellationToken)
@@ -88,11 +135,11 @@ public class DepartmentController : ControllerBase
             return BadRequest(resultSave.Error);
         }
 
-        return Ok($"DepartmentService.Update : {resultSave.Value}");
+        return Ok(new {result.Value });
     }
 
     [HttpDelete("{departmentId:guid}")]
-    public async Task<IActionResult> Delete(
+    public async Task<IActionResult> DeleteAsync(
         [FromRoute] Guid departmentId,
         CancellationToken cancellationToken)
     {
@@ -108,11 +155,11 @@ public class DepartmentController : ControllerBase
             return BadRequest(resultSave.Error);
         }
 
-        return Ok($"DepartmentService.Delete : {resultSave.Value}");
+        return Ok(new { result.Value });
     }
 
     [HttpPut("move/{departmentId:guid}")]
-    public async Task<IActionResult> Move(
+    public async Task<IActionResult> MoveAsync(
     [FromRoute] Guid departmentId,
     [FromBody] Guid newDepartmentId,
     CancellationToken cancellationToken)
@@ -129,13 +176,13 @@ public class DepartmentController : ControllerBase
             return BadRequest(resultSave.Error);
         }
 
-        return Ok($"DepartmentService.ChangeParentAsync : {resultSave.Value}");
+        return Ok(new { result.Value });
     }
 
-    [HttpPut("linkposition/{departmentId:guid}")]
+    [HttpPatch("{departmentId:guid}/positions/{positionMatrixId:guid}")]
     public async Task<IActionResult> LinkPosition(
         [FromRoute] Guid departmentId,
-        [FromBody] Guid positionMatrixId,
+        [FromRoute] Guid positionMatrixId,
         CancellationToken cancellationToken)
     {
         var result = await _departmentService.LinkPositionAsync(departmentId, positionMatrixId, cancellationToken).ConfigureAwait(false);
@@ -149,10 +196,10 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(resultSave.Error);
         }
-        return Ok($"DepartmentService.LinkPosition : {resultSave.Value}");
+        return Ok(new { result.Value });
     }
 
-    [HttpPut("detachposition/{departmentPositionId:guid}")]
+    [HttpPatch("detachposition/{departmentPositionId:guid}")]
     public async Task<IActionResult> DetachPosition(
     [FromRoute] Guid departmentPositionId,
     CancellationToken cancellationToken)
@@ -168,49 +215,6 @@ public class DepartmentController : ControllerBase
         {
             return BadRequest(resultSave.Error);
         }
-        return Ok($"DepartmentService.DetachPosition : {resultSave.Value}");
+        return Ok(new { result.Value });
     }
-
-    [HttpPut("linklocation/{departmentId:guid}")]
-    public async Task<IActionResult> LinkLocation(
-    [FromRoute] Guid departmentId,
-    [FromBody] Guid locationId,
-    CancellationToken cancellationToken)
-    {
-        var result = await _departmentService.LinkLocationAsync(departmentId, locationId, cancellationToken).ConfigureAwait(false);
-        if (result.IsFailure)
-        {
-            return BadRequest(result.Error);
-        }
-
-        var resultSave = await _departmentService.SaveAsync(cancellationToken);
-        if (resultSave.IsFailure)
-        {
-            return BadRequest(resultSave.Error);
-        }
-
-        return Ok($"DepartmentService.LinkLocation : {resultSave.Value}");
-    }
-
-    [HttpPut("detachlocation/{departmentId:guid}")]
-    public async Task<IActionResult> DetachLocation(
-    [FromRoute] Guid departmentId,
-    [FromBody] Guid locationId,
-    CancellationToken cancellationToken)
-    {
-        var result = await _departmentService.DetachLocationAsync(departmentId, locationId, cancellationToken).ConfigureAwait(false);
-        if (result.IsFailure)
-        {
-            return BadRequest(result.Error);
-        }
-
-        var resultSave = await _departmentService.SaveAsync(cancellationToken);
-        if (resultSave.IsFailure)
-        {
-            return BadRequest(resultSave.Error);
-        }
-
-        return Ok($"DepartmentService.DetachLocation : {resultSave.Value}");
-    }
-
 }

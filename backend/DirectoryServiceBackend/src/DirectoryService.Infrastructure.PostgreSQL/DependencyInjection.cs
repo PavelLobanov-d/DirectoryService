@@ -19,8 +19,8 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
         return services
-            .AddScoped<ILocationsRepository, LocationsRepositoryDapper>()
-            //.AddScoped<ILocationsRepository, LocationsRepository>()
+            //.AddScoped<ILocationsRepository, LocationsRepositoryDapper>()
+            .AddScoped<ILocationsRepository, LocationsRepository>()
             .AddScoped<IPositionMatrixRepository, PositionMatrixRepository>()
             .AddScoped<IDepartmentsChiefPositionRepository, DepartmentsChiefPositionRepository>()
             .AddScoped<IDepartmentsRepository, DepartmentsRepository>()

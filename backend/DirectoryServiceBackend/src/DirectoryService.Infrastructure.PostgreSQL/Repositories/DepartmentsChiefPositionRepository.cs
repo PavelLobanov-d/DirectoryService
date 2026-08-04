@@ -34,6 +34,7 @@ internal class DepartmentsChiefPositionRepository : IDepartmentsChiefPositionRep
         return await _dbContext.DepartmentChiefPositions
             .Where(dcp => dcp.DepartmentId == new DepartmentId(departmentId))
             .Include(v => v.PositionMatrix)
+            .Include(v => v.Department)
             .SingleOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
     }
