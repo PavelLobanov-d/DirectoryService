@@ -5,20 +5,20 @@ using System.Text;
 
 namespace DirectoryService.Domain.shared;
 
-public class GeneralErrors
+public static class GeneralErrors
 {
-    public static Error ValueIsInvalid(string? name = null)
+    public static Error ValueIsInvalid(string? fieldName = null)
     {
-        return Error.Validation("value.is.invalid", $"{name ?? "значение"} недействительно");
+        return Error.Validation("value.is.invalid", $"{fieldName ?? "значение"} недействительно", fieldName);
     }
-    public static Error NotFound(Guid? id, string? name = null)
+    public static Error NotFound(Guid? id, string? record = null)
     {
         string label = id == null ? string.Empty : $" по Id '{id}'";
-        return Error.NotFound("record.not.found", $"{name ?? "запись"} не найдена{label}");
+        return Error.NotFound("record.not.found", $"Запись {record ?? string.Empty} не найдена{label}", id);
     }
-    public static Error ValueIsRequired(string? name = null)
+    public static Error ValueIsRequired(string? fieldName = null)
     {
-        string label = name == null ? string.Empty : $"{name} ";
+        string label = fieldName == null ? string.Empty : $"{fieldName} ";
         return Error.Validation("value.is.required", $"Поле {label}обязательно");
     }
     public static Error AlreadyExist()
@@ -29,9 +29,12 @@ public class GeneralErrors
     {
         return Error.Failure("server.error", message);
     }
+    public static Error Conflict(string? code,  string message)
+    {
+        return Error.Conflict(code ?? "conflict", message);
+    }
     public static Error OtherError(string message)
     {
         return Error.Failure("other.error", message);
     }
-
 }

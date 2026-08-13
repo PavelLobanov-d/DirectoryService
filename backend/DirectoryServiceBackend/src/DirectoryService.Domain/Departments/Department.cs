@@ -91,6 +91,7 @@ public sealed class Department
         Department? parent,
         PositionMatrix chiefPosition)
     {
+        /* проверки в Core-слое
         if (parent == null)
         {
             if(chiefPosition.Parent != null)
@@ -109,6 +110,7 @@ public sealed class Department
                 throw new DSException("Для подчинённого департамента в качестве руководителя должна быть выбрана должность, подчинённая руководителю родительского департамента");
             }
         }
+        */
 
         DepartmentId objectId = new DepartmentId(Guid.CreateVersion7());
         DepartmentChiefPosition objectDP = DepartmentChiefPosition.Create(objectId, chiefPosition);
@@ -147,7 +149,7 @@ public sealed class Department
             child.SetParent(this);
         }
     }
-
+    
     /// <summary>
     /// добавить связку департамент-должность
     /// </summary>
@@ -165,7 +167,7 @@ public sealed class Department
 
         return newLink;
     }
-
+    
     /// <summary>
     /// добавить связку департамент-локация
     /// </summary>
@@ -225,13 +227,14 @@ public sealed class Department
             return false;
         }
 
+        bool result = false;
         if (newParent != null)
         {
             ParentId = newParent.Id;
             PathSlug = newParent.PathSlugFull;
+            result = true;
         }
-        bool result = false;
-        Department? oldParent = _parent; 
+        Department? oldParent = _parent;
         _parent = newParent;
 
         if(oldParent != null && oldParent.refresh())
@@ -266,7 +269,10 @@ public sealed class Department
         if ((newSlug != null && newSlug != Slug) || (this.Parent != null && this.Parent.PathSlugFull != PathSlug))
         {
             if (newSlug != null && newSlug != Slug)
+            {
                 Slug = newSlug;
+                result = true;
+            }
             if (Childs != null && Childs.Select(child =>
             {
                 bool v = child.refresh();

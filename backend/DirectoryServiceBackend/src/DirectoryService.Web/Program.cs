@@ -4,6 +4,7 @@ using DirectoryService.Domain.shared;
 using DirectoryService.Infrastructure.PostgreSQL;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using DirectoryService.Web;
+using DirectoryService.Web.Middlewares;
 using dotenv.net;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
@@ -33,6 +34,8 @@ builder.Services.AddProgramDependencies();
 
 
 WebApplication app = builder.Build();
+
+app.UseExceptionMiddleware();
 
 app.MapGet("/", () => "Yellow Submarine");
 
