@@ -53,13 +53,13 @@ public class ExceptionsMiddleware
 
             _ => (
                 StatusCodes.Status500InternalServerError,
-                Error.Failure("server.error", exception.Message).ToErrors()
+                Error.Failure("server.error", "Внутренняя ошибка сервера").ToErrors()
             )
         };
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = code;
-        return context.Response.WriteAsJsonAsync(errors);
+        return context.Response.WriteAsJsonAsync(errors, options);
     }
 
     private static bool TryDeserializeErrors(string message, out Errors errors)

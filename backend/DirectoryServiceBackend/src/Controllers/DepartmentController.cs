@@ -125,7 +125,8 @@ public class DepartmentController : ControllerBase
             //return NotFound();
             throw new NotFoundException(GeneralErrors.NotFound(departmentId, "Department"));
         }
-        return Ok(new { result.Value.Id.Value });
+        //return Ok(new { result.Value.Id.Value });
+        return Ok(new { result.Value });
     }
 
     [HttpPut("{departmentId:guid}")]
