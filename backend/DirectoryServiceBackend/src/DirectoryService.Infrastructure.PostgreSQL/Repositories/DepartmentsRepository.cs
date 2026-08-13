@@ -141,11 +141,11 @@ public class DepartmentsRepository : IDepartmentsRepository
         if (parentDepartmentId != null)
             parentId = new DepartmentId((Guid)parentDepartmentId);
         return await _dbContext.Departments
-            .Where(l => l.ParentId == parentId)
-            .Include(v => v.DepartmentChiefPosition)
-            .ThenInclude(v => v.PositionMatrix)
-            .Include(v => v.DepartmentPositions)
-            .Include(v => v.DepartmentLocations)
+            .Where(v => v.ParentId == parentId)
+            //.Include(v => v.DepartmentChiefPosition)
+            //.ThenInclude(v => v.PositionMatrix)
+            //.Include(v => v.DepartmentPositions)
+            //.Include(v => v.DepartmentLocations)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
