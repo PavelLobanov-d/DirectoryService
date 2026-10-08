@@ -44,6 +44,13 @@ public class ExceptionsMiddleware
                     : Error.Validation("bad.request", exception.Message).ToErrors()
             ),
 
+            ConflictException => (
+                StatusCodes.Status409Conflict,
+                TryDeserializeErrors(exception.Message, out var errs)
+                    ? errs
+                    : Error.Conflict("conflict", exception.Message).ToErrors()
+            ),
+
             NotFoundException => (
                 StatusCodes.Status404NotFound,
                 TryDeserializeErrors(exception.Message, out var errs)
