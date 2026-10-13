@@ -20,7 +20,7 @@ public interface ILocationsService
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Result<Guid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken);
+    public Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken);
     /// <summary>
     /// удалить локацию
     /// </summary>

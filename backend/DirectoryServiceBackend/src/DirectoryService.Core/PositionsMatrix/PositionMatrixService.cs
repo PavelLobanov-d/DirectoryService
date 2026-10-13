@@ -31,7 +31,7 @@ public class PositionMatrixService : IPositionMatrixService
         _logger = logger;
     }
 
-    public async Task<Result<Guid, Errors>> CreateAsync(CreatePositionMatrixDto positionMatrixDto, CancellationToken cancellationToken = default)
+    public async Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreatePositionMatrixDto positionMatrixDto, CancellationToken cancellationToken = default)
     {
         //валидация входящих параметров
         ValidationResult validationResult = await _createValidator.ValidateAsync(positionMatrixDto, cancellationToken).ConfigureAwait(false);
@@ -72,23 +72,6 @@ public class PositionMatrixService : IPositionMatrixService
         }
 
         PositionMatrix? parent = null;
-        /*
-        //проверка на единственную должность с нулевым родительским Id
-        if (positionMatrixDto.ParentPositionMatrixId == null)
-        {
-            var resultCheck = await _positionMatrixRepository.GetByParentIdAsync(parentPositionMatrixId: null, cancellationToken).ConfigureAwait(false);
-            if (resultCheck.IsFailure)
-            {
-                _logger.LogError("Error _positionMatrixRepository.GetByParentIdAsync");
-                return GeneralErrors.Failure("ошибка запроса").ToErrors();
-            }
-            if(resultCheck.Value.Any())
-            {
-                _logger.LogError("Top PositionMatrix already exist");
-                return GeneralErrors.AlreadyExist().ToErrors();
-            }
-        }
-        */
         if (positionMatrixDto.ParentPositionMatrixId != null)
         {
             var resultParent = await _positionMatrixRepository.GetByIdAsync((Guid)positionMatrixDto.ParentPositionMatrixId, cancellationToken).ConfigureAwait(false);
@@ -135,7 +118,11 @@ public class PositionMatrixService : IPositionMatrixService
                 cancellationToken).ConfigureAwait(false);
         }
 
-        return resultAdd.Value;
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error.ToErrors();
+
+        return new CreatedObjectGuid(resultAdd.Value);
     }
     public async Task<Result<bool, Error>> DeleteAsync(Guid positionMatrixId, CancellationToken cancellationToken = default)
     {
@@ -151,6 +138,7 @@ public class PositionMatrixService : IPositionMatrixService
             return GeneralErrors.NotFound(positionMatrixId);
         }
         var result = await DeleteAsync(resultPosition.Value, cancellationToken).ConfigureAwait(false);
+
         return result;
     }
     public async Task<Result<bool, Error>> DeleteAsync(PositionMatrix positionMatrix, CancellationToken cancellationToken = default)
@@ -185,6 +173,12 @@ public class PositionMatrixService : IPositionMatrixService
                 positionMatrix.ParentId != null ? typeof(PositionMatrix).Name : null,
                 cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Deleting of PositionMatrix {1}", positionMatrix.Id);
+        }
+        if (result.IsSuccess)
+        {
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error;
         }
         return result;
     }
@@ -369,6 +363,11 @@ public class PositionMatrixService : IPositionMatrixService
                 await UpdateAsync(child, null, cancellationToken).ConfigureAwait(false);
             }
         }
+
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error.ToErrors();
+
         return true;
     }
     public async Task<Result<bool, Error>> ChangeParentAsync(
@@ -464,7 +463,7 @@ public class PositionMatrixService : IPositionMatrixService
             if(resultUpdateRepos.IsFailure)
             {
                 _logger.LogError("Error _positionMatrixRepository.UpdateAsync");
-                return GeneralErrors.Failure("ошибка обновления должности");
+                return resultUpdateRepos.Error;
             }
             var resultUpdate = await this.UpdateAsync(position, null, cancellationToken).ConfigureAwait(false);
             if (resultUpdate.IsFailure)
@@ -472,6 +471,10 @@ public class PositionMatrixService : IPositionMatrixService
                 _logger.LogError("Error PositionMatrixService.UpdateAsync");
                 return GeneralErrors.Failure("ошибка обновления должности");
             }
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error;
+
             return resultUpdate.Value;
         }
         return true;

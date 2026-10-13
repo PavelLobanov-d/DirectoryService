@@ -64,9 +64,11 @@ public class ExceptionsMiddleware
             )
         };
 
+        Envelope envelope = Envelope.Error(errors);
+
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = code;
-        return context.Response.WriteAsJsonAsync(errors, options);
+        return context.Response.WriteAsJsonAsync(envelope, options);
     }
 
     private static bool TryDeserializeErrors(string message, out Errors errors)

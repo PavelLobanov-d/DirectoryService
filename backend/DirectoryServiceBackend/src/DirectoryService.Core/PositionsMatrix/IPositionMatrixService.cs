@@ -8,7 +8,7 @@ namespace DirectoryService.Core.PositionsMatrix;
 
 public interface IPositionMatrixService
 {
-    public Task<Result<Guid, Errors>> CreateAsync(CreatePositionMatrixDto positionMatrixDto, CancellationToken cancellationToken = default);
+    public Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreatePositionMatrixDto positionMatrixDto, CancellationToken cancellationToken = default);
     public Task<Result<bool, Error>> DeleteAsync(Guid positionMatrixId, CancellationToken cancellationToken = default);
     public Task<Result<PositionMatrix?, Error>> GetByIdAsync(Guid positionMatrixId, CancellationToken cancellationToken = default);
     public Task<Result<List<PositionMatrix>, Error>> GetByParentIdAsync(Guid parentPositionMatrixId, CancellationToken cancellationToken = default);

@@ -1,9 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Добавьте эту строку ниже -->
+    <OpenApiGenerateXmlCommentSupport>false</OpenApiGenerateXmlCommentSupport>	
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,9 +15,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.IdentityModel" />
-    <PackageReference Include="Microsoft.OpenApi" />
-    <PackageReference Include="Scalar.AspNetCore" />
+	<PackageReference Include="Microsoft.OpenApi" />
+	<PackageReference Include="Scalar.AspNetCore" />
+    <!--<PackageReference Include="Scalar.AspNetCore" />-->
   </ItemGroup>
 
   <ItemGroup>
@@ -25,5 +27,12 @@
     <ProjectReference Include="..\DirectoryService.Domain\DirectoryService.Domain.csproj" />
     <ProjectReference Include="..\DirectoryService.Infrastructure.PostgreSQL\DirectoryService.Infrastructure.PostgreSQL.csproj" />
   </ItemGroup>
-
+  
+<!-- Вырезаем проблемный генератор комментариев OpenAPI из сборки .NET 10 -->
+  <Target Name="DisableCompileTimeOpenApiXmlGenerator" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Analyzer Remove="@(Analyzer)" Condition="'%(Filename)' == 'Microsoft.AspNetCore.OpenApi.SourceGenerators'" />
+    </ItemGroup>
+  </Target>
+  
 </Project>
