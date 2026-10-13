@@ -10,6 +10,5 @@
   <ItemGroup>
     <PackageReference Include="CSharpFunctionalExtensions" />
     <PackageReference Include="FluentValidation" />
-    <PackageReference Include="MinimalApis.Extensions" />
   </ItemGroup>
 </Project>
