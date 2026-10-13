@@ -21,10 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Controllers\DirectoryService.Controllers.csproj" />
+    <ProjectReference Include="..\DirectoryService.Controllers\DirectoryService.Controllers.csproj" />
     <ProjectReference Include="..\DirectoryService.Contracts\DirectoryService.Contracts.csproj" />
     <ProjectReference Include="..\DirectoryService.Core\DirectoryService.Core.csproj" />
     <ProjectReference Include="..\DirectoryService.Domain\DirectoryService.Domain.csproj" />
+    <ProjectReference Include="..\DirectoryService.Shared\DirectoryService.Shared.csproj" />
     <ProjectReference Include="..\DirectoryService.Infrastructure.PostgreSQL\DirectoryService.Infrastructure.PostgreSQL.csproj" />
   </ItemGroup>
   

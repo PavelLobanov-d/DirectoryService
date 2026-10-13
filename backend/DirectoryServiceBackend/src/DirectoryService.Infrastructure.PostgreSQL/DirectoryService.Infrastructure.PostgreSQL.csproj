@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DirectoryService.Core\DirectoryService.Core.csproj" />
     <ProjectReference Include="..\DirectoryService.Domain\DirectoryService.Domain.csproj" />
+    <ProjectReference Include="..\DirectoryService.Shared\DirectoryService.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

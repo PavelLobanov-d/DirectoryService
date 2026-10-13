@@ -1,6 +1,5 @@
-﻿using DirectoryService.Domain.shared;
+﻿using DirectoryService.Shared;
 using DirectoryService.Domain.shared.Exceptions;
-using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

@@ -1,7 +1,7 @@
 ﻿using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using CSharpFunctionalExtensions;
 
 

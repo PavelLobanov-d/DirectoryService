@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
-namespace DirectoryService.Domain.shared;
+namespace DirectoryService.Shared;
 
 public sealed class SuccessResult<TValue> : Microsoft.AspNetCore.Http.IResult
 {
@@ -19,10 +19,9 @@ public sealed class SuccessResult<TValue> : Microsoft.AspNetCore.Http.IResult
         ArgumentNullException.ThrowIfNull(httpContext);
         Envelope envelope;
 
-        if (_value is CreatedObjectGuid)
+        if (_value is CreatedObjectGuid createdGuid)
         {
-            CreatedObjectGuid? createdGuid = _value as CreatedObjectGuid?;
-            envelope = Envelope.Ok(createdGuid != null ? createdGuid.Value : _value);
+            envelope = Envelope.Ok(createdGuid.Value);
             httpContext.Response.StatusCode = (int)HttpStatusCode.Created;
         }
         else

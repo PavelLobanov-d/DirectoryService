@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using DirectoryService.Shared;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.PositionsMatrix;
 using DirectoryService.Core.Statistics;

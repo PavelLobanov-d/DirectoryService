@@ -3,7 +3,7 @@ using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;

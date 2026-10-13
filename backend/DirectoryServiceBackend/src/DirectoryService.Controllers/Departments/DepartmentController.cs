@@ -3,9 +3,7 @@ using DirectoryService.Domain.Departments;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.Core.Departments;
-using DirectoryService.Domain.shared;
-using DirectoryService.Domain.shared.Exceptions;
-using System.Text.Json;
+using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryService.Controllers.Departments;

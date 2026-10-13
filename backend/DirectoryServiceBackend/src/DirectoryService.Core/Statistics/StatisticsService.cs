@@ -1,13 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Locations;
-using DirectoryService.Domain.GlobalStatisticsClass;
-using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Text;
 //using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryService.Core.Statistics

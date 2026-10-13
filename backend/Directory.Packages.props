@@ -9,10 +9,14 @@
     <PackageVersion Include="Dapper" Version="2.1.79" />
     <PackageVersion Include="dotenv.net" Version="4.0.2" />
     <PackageVersion Include="FluentResults" Version="4.0.0" />
-    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.86" />
+    <PackageVersion Include="Microsoft.AspNetCore" Version="2.3.13" />
     <PackageVersion Include="Microsoft.AspNetCore.Http" Version="2.3.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Extensions" Version="2.3.11" />
+    <PackageVersion Include="Microsoft.AspNetCore.Http.Features" Version="2.3.11" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Core" Version="2.3.10" />
     <!--<PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0-preview.1.25121.2" />-->
     <PackageVersion Include="Microsoft.OpenApi" Version="1.6.25" />

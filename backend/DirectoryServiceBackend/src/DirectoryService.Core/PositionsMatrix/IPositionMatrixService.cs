@@ -2,7 +2,7 @@
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.PositionsMatrix;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 
 namespace DirectoryService.Core.PositionsMatrix;
 

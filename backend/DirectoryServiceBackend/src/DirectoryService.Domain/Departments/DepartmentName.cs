@@ -1,7 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Domain.shared;
 using System.Text.RegularExpressions;
-//using static System.Runtime.InteropServices.JavaScript.JSType;
+using DirectoryService.Shared;
 
 namespace DirectoryService.Domain.Departments;
 

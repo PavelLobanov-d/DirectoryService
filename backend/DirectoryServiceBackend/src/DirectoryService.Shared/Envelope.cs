@@ -1,27 +1,26 @@
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
 using System.Text.Json.Serialization;
 
-namespace DirectoryService.Domain.shared;
+
+namespace DirectoryService.Shared;
 
 public record Envelope
 {
     public object? Result { get; }
-    public bool? Created { get; }
     public Errors? Errors { get; }
     public bool isError =>
         Errors != null && Errors.Any();
     public DateTime TimeGenerated { get; }
 
     [JsonConstructor]
-    private Envelope(object? result, Errors? errors, bool? created = false)
+    private Envelope(object? result, Errors? errors)
     {
         Result = result;
-        Created = created;
         Errors = errors;
         TimeGenerated = DateTime.Now;
     }
-    public static Envelope Ok(object? result = null, bool created = false) =>
-        new(result, null, created);
+    public static Envelope Ok(object? result = null) =>
+        new(result, null);
     public static Envelope Error(Errors errors) =>
         new(null, errors);
 

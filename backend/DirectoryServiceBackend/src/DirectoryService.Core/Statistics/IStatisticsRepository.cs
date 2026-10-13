@@ -1,5 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
 using System;
 using System.Collections.Generic;

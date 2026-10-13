@@ -1,8 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Domain.DepartmentChiefPositions;
-using DirectoryService.Domain.Departments;
-using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 
 namespace DirectoryService.Core.DepartmentChiefPositions;
 

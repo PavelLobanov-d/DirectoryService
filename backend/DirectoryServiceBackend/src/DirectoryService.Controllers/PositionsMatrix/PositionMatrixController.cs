@@ -1,9 +1,8 @@
 ﻿using DirectoryService.Contracts;
 using DirectoryService.Contracts.PositionsMatrix;
 using DirectoryService.Core.PositionsMatrix;
-using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 using System.Reflection.Metadata;
 

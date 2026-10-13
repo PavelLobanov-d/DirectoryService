@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 
-namespace DirectoryService.Domain.shared;
+namespace DirectoryService.Shared;
 
 public sealed class ErrorsResult : IResult
 {

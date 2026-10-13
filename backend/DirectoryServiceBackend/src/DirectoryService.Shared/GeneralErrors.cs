@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
-namespace DirectoryService.Domain.shared;
+namespace DirectoryService.Shared;
 
 public static class GeneralErrors
 {

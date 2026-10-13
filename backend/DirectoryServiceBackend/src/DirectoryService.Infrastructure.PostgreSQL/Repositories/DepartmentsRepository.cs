@@ -2,7 +2,7 @@
 using DirectoryService.Contracts;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Departments;
-using DirectoryService.Core.PositionsMatrix;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;

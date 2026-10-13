@@ -1,12 +1,10 @@
 ﻿using CSharpFunctionalExtensions;
+using DirectoryService.Shared;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Locations;
-using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection.Metadata;
 
 namespace DirectoryService.Controllers.Locations;
 
