@@ -1,6 +1,5 @@
-﻿using DirectoryService.Domain.shared;
+﻿using DirectoryService.Shared;
 using DirectoryService.Domain.shared.Exceptions;
-using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -44,6 +43,13 @@ public class ExceptionsMiddleware
                     : Error.Validation("bad.request", exception.Message).ToErrors()
             ),
 
+            ConflictException => (
+                StatusCodes.Status409Conflict,
+                TryDeserializeErrors(exception.Message, out var errs)
+                    ? errs
+                    : Error.Conflict("conflict", exception.Message).ToErrors()
+            ),
+
             NotFoundException => (
                 StatusCodes.Status404NotFound,
                 TryDeserializeErrors(exception.Message, out var errs)
@@ -57,9 +63,11 @@ public class ExceptionsMiddleware
             )
         };
 
+        Envelope envelope = Envelope.Error(errors);
+
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = code;
-        return context.Response.WriteAsJsonAsync(errors, options);
+        return context.Response.WriteAsJsonAsync(envelope, options);
     }
 
     private static bool TryDeserializeErrors(string message, out Errors errors)

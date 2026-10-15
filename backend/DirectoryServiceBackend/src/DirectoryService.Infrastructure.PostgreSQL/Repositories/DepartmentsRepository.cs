@@ -2,7 +2,7 @@
 using DirectoryService.Contracts;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Departments;
-using DirectoryService.Core.PositionsMatrix;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
@@ -142,10 +142,10 @@ public class DepartmentsRepository : IDepartmentsRepository
             parentId = new DepartmentId((Guid)parentDepartmentId);
         return await _dbContext.Departments
             .Where(v => v.ParentId == parentId)
-            //.Include(v => v.DepartmentChiefPosition)
-            //.ThenInclude(v => v.PositionMatrix)
-            //.Include(v => v.DepartmentPositions)
-            //.Include(v => v.DepartmentLocations)
+            .Include(v => v.DepartmentChiefPosition)
+            .ThenInclude(v => v.PositionMatrix)
+            .Include(v => v.DepartmentPositions)
+            .Include(v => v.DepartmentLocations)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }

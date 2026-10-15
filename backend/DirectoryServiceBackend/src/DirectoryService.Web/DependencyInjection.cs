@@ -1,7 +1,5 @@
 ﻿using DirectoryService.Core;
-using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Infrastructure.PostgreSQL;
-using System.Runtime.CompilerServices;
 
 namespace DirectoryService.Web;
 
@@ -17,7 +15,7 @@ public static class DependencyInjection
 
     private static IServiceCollection AddWebDependencies(this IServiceCollection services)
     {
-        services.AddOpenApi();
+        //services.AddOpenApi();
         services.AddControllers();
         services.AddHealthChecks();
 

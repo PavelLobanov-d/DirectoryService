@@ -1,11 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Contracts.Locations;
-using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DirectoryService.Core.Statistics;
 

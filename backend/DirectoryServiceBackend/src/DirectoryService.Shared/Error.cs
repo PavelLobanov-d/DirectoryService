@@ -4,7 +4,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace DirectoryService.Domain.shared;
+namespace DirectoryService.Shared;
+
 public record Error
 {
     public string Code { get; }

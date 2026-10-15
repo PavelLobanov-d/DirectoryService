@@ -1,6 +1,6 @@
 ﻿using FluentValidation.Results;
 
-namespace DirectoryService.Domain.shared;
+namespace DirectoryService.Shared;
 
 public record ErrorMessage
 {

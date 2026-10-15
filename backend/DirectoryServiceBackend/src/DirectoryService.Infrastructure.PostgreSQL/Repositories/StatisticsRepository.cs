@@ -1,12 +1,8 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
-using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 

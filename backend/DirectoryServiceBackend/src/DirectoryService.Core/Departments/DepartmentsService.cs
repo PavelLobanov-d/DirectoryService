@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using DirectoryService.Shared;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.Core.DepartmentChiefPositions;
@@ -57,7 +58,7 @@ public class DepartmentsService : IDepartmentsService
         _logger = logger;
     }
 
-    public async Task<Result<Guid, Errors>> CreateAsync(CreateDepartmentDto departmentDto, CancellationToken cancellationToken = default)
+    public async Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreateDepartmentDto departmentDto, CancellationToken cancellationToken = default)
     {
         //валидация входящих параметров
         ValidationResult validationResult = await _createValidator.ValidateAsync(departmentDto, cancellationToken).ConfigureAwait(false);
@@ -76,7 +77,7 @@ public class DepartmentsService : IDepartmentsService
         if (resultIsDuplicate.IsFailure)
         {
             _logger.LogError("Error _departmentRepository.HasNameSlugAsync");
-            return GeneralErrors.Failure("ошибка запроса").ToErrors();
+            return resultIsDuplicate.Error.ToErrors();
         }
         if (resultIsDuplicate.Value)
         {
@@ -97,23 +98,6 @@ public class DepartmentsService : IDepartmentsService
 
         Department? parent = null;
 
-        /*
-        //проверка на единственный департамент с нулевым родительским Id
-        if (departmentDto.ParentDepartmentId == null)
-        {
-            var resultCheck = await _departmentRepository.GetByParentIdAsync(parentDepartmentId: null, cancellationToken).ConfigureAwait(false);
-            if (resultCheck.IsFailure)
-            {
-                _logger.LogError("Error _departmentRepository.GetByParentIdAsync");
-                return GeneralErrors.Failure("ошибка запроса").ToErrors();
-            }
-            if (resultCheck.Value.Any())
-            {
-                _logger.LogError("Top Department already exist");
-                return GeneralErrors.AlreadyExist().ToErrors();
-            }
-        }
-        */
         if (departmentDto.ParentDepartmentId != null)
         {
             var resultParent = await _departmentRepository.GetByIdAsync((Guid)departmentDto.ParentDepartmentId, cancellationToken).ConfigureAwait(false);
@@ -146,11 +130,11 @@ public class DepartmentsService : IDepartmentsService
         //проверка на подчинённость должности начальника
         if (parent == null && positionChief.ParentId != null)
         {
-            return GeneralErrors.OtherError("у головного департамента должен быть начальник высшего уровня").ToErrors();
+            return GeneralErrors.ValueIsInvalid("у головного департамента должен быть начальник высшего уровня").ToErrors();
         }
         else if (parent != null && positionChief.ParentId == null)
         {
-            return GeneralErrors.OtherError("у подчинённого департамента должен быть начальник, подчинённый начальнику родительского департамента").ToErrors();
+            return GeneralErrors.ValueIsInvalid("у подчинённого департамента должен быть начальник, подчинённый начальнику родительского департамента").ToErrors();
         }
         else if (parent != null)
         {
@@ -186,7 +170,7 @@ public class DepartmentsService : IDepartmentsService
 
             if (resultCheck.Value == null)
             {
-                return GeneralErrors.OtherError("должность начальника департамента должна быть зависима от должности начальника родительского департамента").ToErrors();
+                return GeneralErrors.ValueIsInvalid("должность начальника департамента должна быть зависима от должности начальника родительского департамента").ToErrors();
             }
         }
 
@@ -221,7 +205,11 @@ public class DepartmentsService : IDepartmentsService
             parent == null ? null : typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
 
-        return resultAdd.Value;
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error.ToErrors();
+
+        return new CreatedObjectGuid(resultAdd.Value);
     }
     public async Task<Result<bool, Error>> DeleteAsync(Guid departmentId, CancellationToken cancellationToken = default)
     {
@@ -237,6 +225,13 @@ public class DepartmentsService : IDepartmentsService
             return GeneralErrors.NotFound(departmentId, "Department");
         }
         var result = await DeleteAsync(resultPosition.Value, cancellationToken).ConfigureAwait(false);
+
+        if (result.IsSuccess)
+        {
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error;
+        }
         return result;
     }
     public async Task<Result<bool, Error>> DeleteAsync(Department department, CancellationToken cancellationToken = default)
@@ -273,6 +268,12 @@ public class DepartmentsService : IDepartmentsService
                 cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Deleting of Department {DepartmentId}", department.Id);
         }
+        if (result.IsSuccess)
+        {
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error;
+        }
         return result;
     }
     public async Task<Result<List<Department>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken = default)
@@ -304,13 +305,19 @@ public class DepartmentsService : IDepartmentsService
             return GeneralErrors.Failure("ошибка запроса поиска департаментов");
         }
         return resultPositions.Value;
-
     }
+
     public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default)
     {
         var result = await _departmentRepository.SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+        {
+            _logger.LogError("Error _departmentRepository.SaveAsync");
+            return GeneralErrors.Failure("ошибка сохранения Department");
+        }
         return result;
     }
+
     public async Task<Result<bool, Errors>> UpdateAsync(
     Guid departmentId,
     UpdateDepartmentDto? departmentDto,
@@ -327,8 +334,16 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Record of Department not found {1}", departmentId);
             return GeneralErrors.NotFound(departmentId, "Department").ToErrors();
         }
+
         Department department = resultDepartment.Value;
-        return await UpdateAsync(department, departmentDto, cancellationToken).ConfigureAwait(false);
+        var result = await UpdateAsync(department, departmentDto, cancellationToken).ConfigureAwait(false);
+        if (result.IsSuccess)
+        {
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error.ToErrors();
+        }
+        return result;
     }
     public async Task<Result<bool, Errors>> UpdateAsync(
         Department department,
@@ -456,6 +471,11 @@ public class DepartmentsService : IDepartmentsService
                 await UpdateAsync(child, null, cancellationToken).ConfigureAwait(false);
             }
         }
+
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error.ToErrors();
+
         return true;
     }
     public async Task<Result<bool, Errors>> ChangeParentAsync(
@@ -501,7 +521,7 @@ public class DepartmentsService : IDepartmentsService
         var resultFind = await findChildByIdAsync(department, departmentParent.Id, cancellationToken).ConfigureAwait(false);
         if (resultFind.IsSuccess && resultFind.Value != null)
         {
-            return GeneralErrors.OtherError("зацикливание иерархии департаментов").ToErrors();
+            return GeneralErrors.Conflict("hierarchy.cicling", "зацикливание иерархии департаментов").ToErrors();
         }
 
         //проверка на уникальность Slug у родителя
@@ -554,6 +574,9 @@ public class DepartmentsService : IDepartmentsService
             if (resultUpdate.IsFailure)
                 return resultUpdate.Error;
 
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error.ToErrors();
             return true;
         }
         return false;
@@ -641,7 +664,7 @@ public class DepartmentsService : IDepartmentsService
             if (resultCheck.IsFailure)
                 return resultCheck.Error;
             if (resultCheck.Value == null)
-                return GeneralErrors.OtherError("должность начальника департамента должна быть зависима от должности начальника родительского департамента");
+                return GeneralErrors.ValueIsInvalid("должность начальника департамента должна быть зависима от должности начальника родительского департамента");
         }
 
         var resultDepartmentChiefPosition = await _departmentChiefPositionsRepository.GetByDepartmentIdAsync(
@@ -685,6 +708,10 @@ public class DepartmentsService : IDepartmentsService
             null,
             cancellationToken).ConfigureAwait(false);
 
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error;
+
         return true;
     }
     private async Task<Result<Department?, Errors>> findChildByIdAsync(
@@ -716,7 +743,7 @@ public class DepartmentsService : IDepartmentsService
         }
         return childFinded;
     }
-    public async Task<Result<Guid, Error>> LinkPositionAsync(
+    public async Task<Result<CreatedObjectGuid, Error>> LinkPositionAsync(
         Guid departmentId,
         Guid positionMatrixId,
         CancellationToken cancellationToken = default)
@@ -763,13 +790,13 @@ public class DepartmentsService : IDepartmentsService
 
         //проверка на подчинённость должности начальника
         if (positionMatrix.ParentId == null)
-            return GeneralErrors.OtherError("нельзя прикрепить должность высшего уровня");
+            return GeneralErrors.ValueIsInvalid("нельзя прикрепить должность высшего уровня");
 
         var resultChild = await _positionMatrixService.FindChildByIdAsync(departamentChief.PositionMatrix, positionMatrix.Id, cancellationToken).ConfigureAwait(false);
         if (resultChild.IsFailure)
             return resultChild.Error;
         if(resultChild.Value == null)
-            return GeneralErrors.OtherError("прикрепляемая должность должна быть зависима от должности начальника департамента");
+            return GeneralErrors.ValueIsInvalid("прикрепляемая должность должна быть зависима от должности начальника департамента");
 
         DepartmentPosition link;
         try
@@ -791,7 +818,11 @@ public class DepartmentsService : IDepartmentsService
             typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
 
-        return link.Id.Value;
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error;
+
+        return new CreatedObjectGuid(link.Id.Value);
     }
 
     public async Task<Result<bool, Error>> DetachPositionAsync(
@@ -829,11 +860,14 @@ public class DepartmentsService : IDepartmentsService
             typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
         }
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error;
 
         return resultDelete.Value;
     }
 
-    public async Task<Result<Guid, Error>> LinkLocationAsync(
+    public async Task<Result<CreatedObjectGuid, Error>> LinkLocationAsync(
         Guid departmentId,
         Guid locationId,
         CancellationToken cancellationToken = default)
@@ -891,8 +925,12 @@ public class DepartmentsService : IDepartmentsService
             department.Id.Value,
             department.GetType().Name,
             cancellationToken).ConfigureAwait(false);
+      
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error;
 
-        return link.Id.Value;
+        return new CreatedObjectGuid(link.Id.Value);
     }
 
     public async Task<Result<bool, Error>> DetachLocationAsync(
@@ -930,7 +968,7 @@ public class DepartmentsService : IDepartmentsService
             {
                 return GeneralErrors.NotFound(locationId, "Location");
             }
-            return GeneralErrors.OtherError($"Нет связи департамента {resultDepartment.Value.Name} и локации {resultLocation.Value.Name}");
+            return GeneralErrors.ValueIsRequired($"Нет связи департамента {resultDepartment.Value.Name} и локации {resultLocation.Value.Name}");
         }
 
         Department department = link.Department;
@@ -955,6 +993,12 @@ public class DepartmentsService : IDepartmentsService
                 location.Id.Value,
                 location.GetType().Name,
             cancellationToken).ConfigureAwait(false);
+        }
+        if (resultDelete.IsSuccess)
+        {
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error;
         }
         return resultDelete.Value;
     }

@@ -3,7 +3,7 @@ using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
@@ -37,7 +37,7 @@ public class LocationsService: ILocationsService
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>Guid новой локации</returns>
-    public async Task<Result<Guid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken)
+    public async Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken)
     {
         //валидация входящих параметров
         ValidationResult validationResult = await _createValidator.ValidateAsync(locationDto, cancellationToken).ConfigureAwait(false);
@@ -86,7 +86,11 @@ public class LocationsService: ILocationsService
 
         _logger.LogInformation("Location created with Id {1}", resultAdd.Value);
 
-        return resultAdd.Value;
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error.ToErrors();
+
+        return new CreatedObjectGuid(resultAdd.Value);
     }
     /// <summary>
     /// удалить локацию
@@ -112,6 +116,11 @@ public class LocationsService: ILocationsService
                 cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Deleting of location {1}", locationId);
+
+        var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (resultSave.IsFailure)
+            return resultSave.Error;
+
         return result;
     }
     /// <summary>
@@ -257,6 +266,11 @@ public class LocationsService: ILocationsService
 
                 _logger.LogInformation("Change address of location {1} : {2}", location.Id.Value, location.Address.Value);
             }
+
+            var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (resultSave.IsFailure)
+                return resultSave.Error.ToErrors();
+
             return true;
         }
         return GeneralErrors.NotFound(locationId).ToErrors();

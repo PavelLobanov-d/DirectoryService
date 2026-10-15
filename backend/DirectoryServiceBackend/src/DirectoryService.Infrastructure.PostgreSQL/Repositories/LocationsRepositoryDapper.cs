@@ -3,7 +3,7 @@ using Dapper;
 using DirectoryService.Contracts;
 using DirectoryService.Core.Locations;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;

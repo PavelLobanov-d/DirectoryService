@@ -1,5 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using System.Text.RegularExpressions;
 
 namespace DirectoryService.Domain.PositionsMatrix;

@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace DirectoryService.Domain.shared;
+namespace DirectoryService.Shared;
 
 [JsonConverter(typeof(ErrorsConverter))]
 public class Errors : IEnumerable<Error>
