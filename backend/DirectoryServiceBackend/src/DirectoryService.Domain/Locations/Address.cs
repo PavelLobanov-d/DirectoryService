@@ -9,8 +9,8 @@ namespace DirectoryService.Domain.Locations;
 
 public partial record Address
 {
-    public const int NAME_MIN_LENGHT = 3;
-    public const int NAME_MAX_LENGHT = 150;
+    public const int ADDRESS_MIN_LENGHT = 3;
+    public const int ADDRESS_MAX_LENGHT = 150;
 
     public string Value { get; } = string.Empty;
 
@@ -29,7 +29,7 @@ public partial record Address
             return GeneralErrors.ValueIsRequired("адрес");
         }
 
-        if (normalized.Length is < NAME_MIN_LENGHT or > NAME_MAX_LENGHT)
+        if (normalized.Length is < ADDRESS_MIN_LENGHT or > ADDRESS_MAX_LENGHT)
         {
             return GeneralErrors.ValueIsInvalid("адрес");
         }

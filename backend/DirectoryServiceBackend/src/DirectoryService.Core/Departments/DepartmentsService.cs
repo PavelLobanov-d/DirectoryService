@@ -19,6 +19,7 @@ using DirectoryService.Domain.Statistics;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
+using DirectoryService.Core.Validation;
 
 namespace DirectoryService.Core.Departments;
 
@@ -64,6 +65,7 @@ public class DepartmentsService : IDepartmentsService
         ValidationResult validationResult = await _createValidator.ValidateAsync(departmentDto, cancellationToken).ConfigureAwait(false);
         if (!validationResult.IsValid)
         {
+            return validationResult.ToErrors();
             return new Errors(validationResult);
         }
         //валидация бизнес-правил

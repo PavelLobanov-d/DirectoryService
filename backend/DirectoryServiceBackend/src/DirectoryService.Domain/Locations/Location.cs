@@ -1,11 +1,4 @@
 ﻿using DirectoryService.Domain.DepartmentLocations;
-using DirectoryService.Domain.GlobalStatisticsClass;
-using DirectoryService.Domain.Statistics;
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-using CSharpFunctionalExtensions;
 
 namespace DirectoryService.Domain.Locations;
 

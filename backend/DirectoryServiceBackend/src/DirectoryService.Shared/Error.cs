@@ -70,7 +70,7 @@ public record Error
 
     public static implicit operator Error(ValidationFailure error)
     {
-        return Failure(error.ErrorCode, error.ErrorMessage);
+        return Validation(error.ErrorCode, error.ErrorMessage);
     }
 
     public Errors ToErrors() => this;
