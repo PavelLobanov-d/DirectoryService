@@ -1,6 +1,9 @@
-﻿namespace DirectoryService.Contracts.Departments;
+﻿using FluentValidation;
 
-public record CreateDepartmentDto(string Name,
+namespace DirectoryService.Contracts.Departments;
+
+public record CreateDepartmentDto(
+    string Name,
     string Slug,
     Guid? ParentDepartmentId,
     Guid ChiefPositionMatrixId,
