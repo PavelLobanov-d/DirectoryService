@@ -2,7 +2,6 @@
 using DirectoryService.Core.Validation;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.shared;
-using DirectoryService.Shared;
 using FluentValidation;
 
 namespace DirectoryService.Core.Departments;
