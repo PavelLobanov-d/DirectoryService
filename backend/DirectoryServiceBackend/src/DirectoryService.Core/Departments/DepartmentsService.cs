@@ -66,7 +66,6 @@ public class DepartmentsService : IDepartmentsService
         if (!validationResult.IsValid)
         {
             return validationResult.ToErrors();
-            return new Errors(validationResult);
         }
         //валидация бизнес-правил
         //проверка на уникальность Slug у родителя
@@ -296,6 +295,12 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentRepository.GetByIdAsync");
             return GeneralErrors.Failure("ошибка запроса поиска департамента");
         }
+        else if(resultPosition.Value == null)
+        {
+            var message = $"не найден Department по {departmentId}";
+            _logger.LogWarning(message);
+        }
+
         return resultPosition.Value;
     }
     public async Task<Result<List<Department>, Error>> GetByParentIdAsync(Guid parentDepartmentId, CancellationToken cancellationToken = default)

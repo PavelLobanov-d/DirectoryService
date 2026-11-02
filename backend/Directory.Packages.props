@@ -39,6 +39,16 @@
     <PackageVersion Include="Roslynator.Analyzers" Version="4.15.0" />
     <!--<PackageVersion Include="Scalar.AspNetCore" Version="2.17.14" />-->
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
+    <PackageVersion Include="Serilog" Version="4.4.0" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+    <PackageVersion Include="Serilog.Exceptions" Version="8.4.0" />
+    <PackageVersion Include="Serilog.Extensions.Autofac.DependencyInjection" Version="5.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Async" Version="2.1.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageVersion Include="Serilog.Sinks.Debug" Version="3.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Seq" Version="9.1.0" />
     <PackageVersion Include="SonarAnalyzer.CSharp" Version="10.25.0.139117" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.6" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Swagger" Version="9.0.6" />

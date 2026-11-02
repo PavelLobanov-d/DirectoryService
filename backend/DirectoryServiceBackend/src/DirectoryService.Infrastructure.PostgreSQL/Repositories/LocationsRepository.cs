@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using System.Linq.Expressions;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 
@@ -115,11 +116,21 @@ internal class LocationsRepository : ILocationsRepository
     }
     public async Task<Result<Location?, Error>> GetByIdAsync(Guid locationId, CancellationToken cancellationToken = default)
     {
+        Result<List<Location>?, Error> result = await GetByAsync(l => l.Id == new LocationId(locationId), cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+            return result.Error;
+
+        return result.Value?.FirstOrDefault();
+    }
+
+    public async Task<Result<List<Location>?, Error>> GetByAsync(Expression<Func<Location, bool>> predicate, CancellationToken cancellationToken = default)
+    {
         return await _dbContext.Locations
-            .Where(l => l.Id == new LocationId(locationId))
-            .SingleOrDefaultAsync(cancellationToken)
+            .Where(predicate)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
+
     public async Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Locations

@@ -8,6 +8,7 @@ using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 
 namespace DirectoryService.Core.PositionsMatrix;
 

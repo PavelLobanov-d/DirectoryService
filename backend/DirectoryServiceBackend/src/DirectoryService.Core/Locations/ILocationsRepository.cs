@@ -1,8 +1,10 @@
-﻿using DirectoryService.Contracts;
+﻿using CSharpFunctionalExtensions;
+using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
+using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Shared;
-using CSharpFunctionalExtensions;
+using System.Linq.Expressions;
 
 
 namespace DirectoryService.Core.Locations;
@@ -37,6 +39,7 @@ public interface ILocationsRepository
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<Result<bool, Error>> DeleteAsync(Location location, CancellationToken cancellationToken = default);
+    Task<Result<List<Location>?, Error>> GetByAsync(Expression<Func<Location, bool>> predicate, CancellationToken cancellationToken = default);
     /// <summary>
     /// получить локацию
     /// </summary>
