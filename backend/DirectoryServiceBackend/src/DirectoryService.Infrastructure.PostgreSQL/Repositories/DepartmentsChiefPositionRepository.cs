@@ -6,6 +6,7 @@ using DirectoryService.Domain.Departments;
 using DirectoryService.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Linq.Expressions;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 
@@ -29,15 +30,27 @@ internal class DepartmentsChiefPositionRepository : IDepartmentsChiefPositionRep
         _dbContext.DepartmentChiefPositions.Remove(departmentChiefPosition);
         return true;
     }
+
     public async Task<Result<DepartmentChiefPosition?, Error>> GetByDepartmentIdAsync(Guid departmentId, CancellationToken cancellationToken = default)
     {
+        Result<List<DepartmentChiefPosition>?, Error> result = await GetByAsync(dcp => dcp.DepartmentId == new DepartmentId(departmentId),
+            cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+            return result.Error;
+
+        return result.Value?.FirstOrDefault();
+    }
+
+    public async Task<Result<List<DepartmentChiefPosition>?, Error>> GetByAsync(Expression<Func<DepartmentChiefPosition, bool>> predicate, CancellationToken cancellationToken = default)
+    {
         return await _dbContext.DepartmentChiefPositions
-            .Where(dcp => dcp.DepartmentId == new DepartmentId(departmentId))
+            .Where(predicate)
             .Include(v => v.PositionMatrix)
             .Include(v => v.Department)
-            .SingleOrDefaultAsync(cancellationToken)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
+
     public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default)
     {
         int result = await _dbContext

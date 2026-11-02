@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-
+﻿
 namespace DirectoryService.Contracts.Departments;
 
 public record CreateDepartmentDto(

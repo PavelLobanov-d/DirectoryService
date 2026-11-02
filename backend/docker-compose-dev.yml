@@ -1,0 +1,13 @@
+services:
+  seq:
+    image: datalust/seq:latest
+    container_name: seq
+    restart: unless-stopped
+    ports:
+      - "8080:80"     # Веб-интерфейс UI и API управления
+      - "5341:5341"   # Порт только для приема логов (Ingestion-only)
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_NOAUTHENTICATION=true
+    volumes:
+      - ./seq-data:/data

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using System.Linq.Expressions;
 
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
@@ -29,12 +30,14 @@ public class PositionMatrixRepository : IPositionMatrixRepository
         var result = await _dbContext.PositionsMatrix.AddAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
         return result.Entity.Id.Value;
     }
+
     public async Task<Result<bool, Error>> DeleteAsync(Guid positionMatrixId, CancellationToken cancellationToken = default)
     {
-        PositionMatrix? obj = await _dbContext.PositionsMatrix
-        .Where(l => l.Id == new PositionMatrixId(positionMatrixId))
-        .SingleOrDefaultAsync(cancellationToken)
-        .ConfigureAwait(false);
+        Result<PositionMatrix?, Error> result = await GetByIdAsync(positionMatrixId, cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+            return result.Error;
+
+        PositionMatrix? obj = result.Value;
         if (obj != null)
         {
             _dbContext.PositionsMatrix.Remove(obj);
@@ -42,6 +45,7 @@ public class PositionMatrixRepository : IPositionMatrixRepository
         }
         return false;
     }
+
     public async Task<Result<bool, Error>> DeleteAsync(PositionMatrix positionMatrix, CancellationToken cancellationToken = default)
     {
         _dbContext.PositionsMatrix.Remove(positionMatrix);
@@ -123,9 +127,18 @@ public class PositionMatrixRepository : IPositionMatrixRepository
     }
     public async Task<Result<PositionMatrix?, Error>> GetByIdAsync(Guid positionMatrixId, CancellationToken cancellationToken = default)
     {
+        Result<List<PositionMatrix>?, Error> result = await GetByAsync(p => p.Id == new PositionMatrixId(positionMatrixId), cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+            return result.Error;
+
+        return result.Value?.FirstOrDefault();
+    }
+
+    public async Task<Result<List<PositionMatrix>?, Error>> GetByAsync(Expression<Func<PositionMatrix, bool>> predicate, CancellationToken cancellationToken = default)
+    {
         return await _dbContext.PositionsMatrix
-            .Where(l => l.Id == new PositionMatrixId(positionMatrixId))
-            .SingleOrDefaultAsync(cancellationToken)
+            .Where(predicate)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
 

@@ -2,14 +2,15 @@
 using DirectoryService.Contracts;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Departments;
-using DirectoryService.Shared;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
+using DirectoryService.Shared;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using System.Linq.Expressions;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 
@@ -125,13 +126,23 @@ public class DepartmentsRepository : IDepartmentsRepository
     }
     public async Task<Result<Department?, Error>> GetByIdAsync(Guid departmentId, CancellationToken cancellationToken = default)
     {
+        Result<List<Department>?, Error> result = await GetByAsync(d => d.Id == new DepartmentId(departmentId), cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+            return result.Error;
+
+        return result.Value?.FirstOrDefault();
+    }
+
+    public async Task<Result<List<Department>?, Error>> GetByAsync(Expression<Func<Department, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
         return await _dbContext.Departments
-            .Where(l => l.Id == new DepartmentId(departmentId))
+            .Where(predicate)
             .Include(v => v.DepartmentChiefPosition)
             .ThenInclude(v => v.PositionMatrix)
             .Include(v => v.DepartmentPositions)
             .Include(v => v.DepartmentLocations)
-            .SingleOrDefaultAsync(cancellationToken)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
     }
 

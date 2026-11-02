@@ -3,12 +3,13 @@ using Dapper;
 using DirectoryService.Contracts;
 using DirectoryService.Core.Locations;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
+using DirectoryService.Shared;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using System.Linq.Expressions;
 using System.Text;
 using System.Xml.Linq;
 
@@ -24,7 +25,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
     }
     public async Task<Result<Guid, Error>> AddAsync(Location location, CancellationToken cancellationToken = default)
     {
-        using var connection = await _connectionFactory.CreateConnectionAsync().ConfigureAwait(false);
+        using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
         const string request =
             """
             INSERT INTO locations (id, name, address)
@@ -54,7 +55,7 @@ internal class LocationsRepositoryDapper : ILocationsRepository
     }
     public async Task<Result<bool, Error>> DeleteAsync(Guid locationId, CancellationToken cancellationToken = default)
     {
-        using var connection = await _connectionFactory.CreateConnectionAsync().ConfigureAwait(false);
+        using var connection = await _connectionFactory.CreateConnectionAsync(cancellationToken).ConfigureAwait(false);
         const string request =
             """
             DELETE FROM locations WHERE id = @id
@@ -191,6 +192,12 @@ internal class LocationsRepositoryDapper : ILocationsRepository
             return GeneralErrors.Failure("Ошибка выбора локации");
         }
     }
+
+    public async Task<Result<List<Location>?, Error>> GetByAsync(Expression<Func<Location, bool>> predicate, CancellationToken cancellationToken = default)
+    {
+        return GeneralErrors.OtherError("не применимо в этом контексте");
+    }
+
     public async Task<Result<List<Location>, Error>> GetByIdsAsync(IEnumerable<Guid> locationIds, CancellationToken cancellationToken = default)
     {
         using var connection = await _connectionFactory.CreateConnectionAsync().ConfigureAwait(false);

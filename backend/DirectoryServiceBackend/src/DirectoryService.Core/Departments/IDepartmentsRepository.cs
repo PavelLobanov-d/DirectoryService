@@ -1,7 +1,9 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
+using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Shared;
+using System.Linq.Expressions;
 
 namespace DirectoryService.Core.Departments;
 
@@ -9,6 +11,7 @@ public interface IDepartmentsRepository
 {
     Task<Result<Guid, Error>> AddAsync(Department department, CancellationToken cancellationToken = default);
     Task<Result<List<Department>, Error>> GetAsync(SelectDto request, CancellationToken cancellationToken = default);
+    Task<Result<List<Department>?, Error>> GetByAsync(Expression<Func<Department, bool>> predicate, CancellationToken cancellationToken = default);
     Task<Result<Department?, Error>> GetByIdAsync(Guid departmentId, CancellationToken cancellationToken = default);
     Task<Result<List<Department>, Error>> GetByParentIdAsync(Guid? parentDepartmentId, CancellationToken cancellationToken = default);
     Task<Result<bool, Error>> HasNameSlugAsync(string name, string slug, Guid? parentId, Guid? excludeId, CancellationToken cancellationToken = default);
