@@ -12,6 +12,10 @@
 *.user
 *.userosscache
 *.sln.docstates
+*credential*
+
+# Docker data files
+*/seq-data/*
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

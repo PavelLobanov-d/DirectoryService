@@ -8,7 +8,6 @@ services:
       - "5341:5341"   # Порт только для приема логов (Ingestion-only)
     environment:
       - ACCEPT_EULA=Y
-      - SEQ_FIRSTRUN_ADMINPASSWORD=seqDockerCompose(Dev)
-      - SEQ_FIRSTRUN_NOAUTHRNTIFICATION=true
+      - SEQ_FIRSTRUN_NOAUTHENTICATION=true
     volumes:
       - ./seq-data:/data

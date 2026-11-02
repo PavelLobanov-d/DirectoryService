@@ -32,7 +32,6 @@ try
 
     DotEnv.Load();
     string? connectionString = Environment.GetEnvironmentVariable("DIRECTORY_SERVICE_CONNECTIONSTRING");
-    Console.WriteLine($"connectionString: {connectionString}");
 
     if (connectionString == null)
     {

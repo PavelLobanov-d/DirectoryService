@@ -297,8 +297,7 @@ public class DepartmentsService : IDepartmentsService
         }
         else if(resultPosition.Value == null)
         {
-            var message = $"не найден Department по {departmentId}";
-            _logger.LogWarning(message);
+            _logger.LogWarning("не найден Department по {1}", departmentId);
         }
 
         return resultPosition.Value;
