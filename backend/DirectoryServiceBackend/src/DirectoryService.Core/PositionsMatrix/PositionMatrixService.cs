@@ -9,9 +9,10 @@ using DirectoryService.Domain.Statistics;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
+using DirectoryService.Core.PositionsMatrix.Create;
+using DirectoryService.Core.PositionsMatrix.Update;
 
 namespace DirectoryService.Core.PositionsMatrix;
-
 public class PositionMatrixService : IPositionMatrixService
 {
     private readonly IPositionMatrixRepository _positionMatrixRepository;
@@ -82,9 +83,9 @@ public class PositionMatrixService : IPositionMatrixService
                 _logger.LogError("Error _positionMatrixRepository.GetByIdAsync");
                 return GeneralErrors.Failure("ошибка запроса").ToErrors();
             }
-            else if (resultParent.Value == null)
+            if (resultParent.Value == null)
             {
-                _logger.LogError("Record of PositionMatrix not found {1}", positionMatrixDto.ParentPositionMatrixId);
+                _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", positionMatrixDto.ParentPositionMatrixId);
                 return GeneralErrors.NotFound((Guid)positionMatrixDto.ParentPositionMatrixId).ToErrors();
             }
             parent = resultParent.Value;
@@ -97,7 +98,7 @@ public class PositionMatrixService : IPositionMatrixService
             _logger.LogError("Error creating record of PositionMatrix");
             return GeneralErrors.Failure("ошибка добавления должности").ToErrors();
         }
-        _logger.LogInformation("PositionMatrix created with Id {1}", resultAdd.Value);
+        _logger.LogInformation("PositionMatrix created with Id {PositionMatrixId}", resultAdd.Value);
 
         await _stats.CreateAsync(
             resultAdd.Value,
@@ -136,7 +137,7 @@ public class PositionMatrixService : IPositionMatrixService
         }
         if (resultPosition.Value == null)
         {
-            _logger.LogError("Record of PositionMatrix not found {1}", positionMatrixId);
+            _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", positionMatrixId);
             return GeneralErrors.NotFound(positionMatrixId);
         }
         var result = await DeleteAsync(resultPosition.Value, cancellationToken).ConfigureAwait(false);
@@ -152,7 +153,7 @@ public class PositionMatrixService : IPositionMatrixService
             _logger.LogError("Error _positionMatrixRepository.GetByParentIdAsync");
             return GeneralErrors.Failure("ошибка запроса поиска должностей по родительской");
         }
-        if(resultHasExists.Value.Any())
+        if(resultHasExists.Value.Count > 0)
         {
             return Error.Conflict("rules.failure", "есть зависимые должности. Удаление запрещено");
         }
@@ -170,11 +171,11 @@ public class PositionMatrixService : IPositionMatrixService
                 typeof(PositionMatrix).Name,
                 Statistica.Level.INFO,
                 Statistica.Action.DELETE,
-                $"Удаление",
-                positionMatrix.ParentId != null ? positionMatrix.ParentId.Value : null,
-                positionMatrix.ParentId != null ? typeof(PositionMatrix).Name : null,
+                "Удаление",
+                positionMatrix.ParentId?.Value,
+                positionMatrix.ParentId != null ? nameof(PositionMatrix) : null,
                 cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Deleting of PositionMatrix {1}", positionMatrix.Id);
+            _logger.LogInformation("Deleting of PositionMatrix {PositionMatrixId}", positionMatrix.Id);
         }
         if (result.IsSuccess)
         {
@@ -233,7 +234,7 @@ public class PositionMatrixService : IPositionMatrixService
         }
         if (resultPositionMatrix.Value == null)
         {
-            _logger.LogError("Record of PositionMatrix not found {1}", positionMatrixId);
+            _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", positionMatrixId);
             return GeneralErrors.NotFound(positionMatrixId).ToErrors();
         }
         PositionMatrix position = resultPositionMatrix.Value;
@@ -261,9 +262,9 @@ public class PositionMatrixService : IPositionMatrixService
             if (positionDto.NewName != null || positionDto.NewSlug != null)
             {
                 var resultIsDuplicate = await _positionMatrixRepository.HasNameSlugAsync(
-                    positionDto.NewName == null ? positionMatrix.Name.Value : positionDto.NewName,
-                    positionDto.NewSlug == null ? positionMatrix.Slug.Value : positionDto.NewSlug,
-                    positionMatrix.ParentId == null ? null : positionMatrix.ParentId.Value,
+                    positionDto.NewName ?? positionMatrix.Name.Value,
+                    positionDto.NewSlug ?? positionMatrix.Slug.Value,
+                    positionMatrix.ParentId?.Value,
                     positionMatrix.Id.Value,
                     cancellationToken).ConfigureAwait(false);
 
@@ -277,7 +278,7 @@ public class PositionMatrixService : IPositionMatrixService
                     return GeneralErrors.AlreadyExist().ToErrors();
                 }
             }
-            if (positionDto.NewName != null && !positionMatrix.Name.Value.Equals(positionDto.NewName))
+            if (positionDto.NewName != null && !positionMatrix.Name.Value.Equals(positionDto.NewName, StringComparison.Ordinal))
             {
                 var resultNewName = PositionName.Create(positionDto.NewName);
                 if (resultNewName.IsSuccess)
@@ -290,7 +291,7 @@ public class PositionMatrixService : IPositionMatrixService
                     $"Название изменено с {positionMatrix.Name} на {newName}",
                     cancellationToken).ConfigureAwait(false);
             }
-            if (positionDto.NewSlug != null && !positionMatrix.Slug.Value.Equals(positionDto.NewSlug))
+            if (positionDto.NewSlug != null && !positionMatrix.Slug.Value.Equals(positionDto.NewSlug, StringComparison.Ordinal))
             {
                 var resultNewNewSlug = Slug.Create(positionDto.NewSlug);
                 if (resultNewNewSlug.IsSuccess)
@@ -316,16 +317,18 @@ public class PositionMatrixService : IPositionMatrixService
                     return GeneralErrors.Failure("ошибка поиска родительской должности").ToErrors();
                 }
                 if (resultPosition.Value != null)
+                {
                     positionMatrix.SetParent(resultPosition.Value);
+                }
                 else
                 {
-                    _logger.LogError("Record of PositionMatrix not found {1}", positionMatrix.ParentId);
+                    _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", positionMatrix.ParentId);
                     return GeneralErrors.NotFound(positionMatrix.ParentId.Value).ToErrors();
                 }
             }
-            if(positionMatrix.PathSlug != positionMatrix.Parent.PathSlugFull)
+            if(positionMatrix.PathSlug != positionMatrix.Parent?.PathSlugFull)
             {
-                newPathSlug = positionMatrix.Parent.PathSlugFull;
+                newPathSlug = positionMatrix.Parent?.PathSlugFull;
             }
         }
         //потомки
@@ -335,7 +338,7 @@ public class PositionMatrixService : IPositionMatrixService
             _logger.LogError("Error _positionMatrixRepository.GetByParentIdAsync");
             return GeneralErrors.Failure("ошибка получения потомков").ToErrors();
         }
-        else if (resultChilds.Value.Count > 0)
+        if (resultChilds.Value.Count > 0)
         {
             positionMatrix.AddChilds(resultChilds.Value);
         }
@@ -362,7 +365,7 @@ public class PositionMatrixService : IPositionMatrixService
         {
             foreach (PositionMatrix child in positionMatrix.Childs)
             {
-                await UpdateAsync(child, null, cancellationToken).ConfigureAwait(false);
+                await UpdateAsync(child, positionDto: null, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -386,7 +389,7 @@ public class PositionMatrixService : IPositionMatrixService
         }
         if (resultPositionMatrix.Value == null)
         {
-            _logger.LogError("Record of PositionMatrix not found {1}", positionMatrixId);
+            _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", positionMatrixId);
             return GeneralErrors.NotFound(positionMatrixId);
         }
         PositionMatrix position = resultPositionMatrix.Value;
@@ -400,7 +403,7 @@ public class PositionMatrixService : IPositionMatrixService
         }
         if (resultParentPositionMatrix.Value == null)
         {
-            _logger.LogError("Record of PositionMatrix not found {1}", newParentPositionId);
+            _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", newParentPositionId);
             return GeneralErrors.NotFound(newParentPositionId);
         }
         PositionMatrix positionParent = resultParentPositionMatrix.Value;
@@ -439,15 +442,18 @@ public class PositionMatrixService : IPositionMatrixService
             return GeneralErrors.AlreadyExist();
         }
 
-        await _stats.CreateAsync(
-            position.Id.Value,
-            typeof(PositionMatrix).Name,
-            Statistica.Level.FINE,
-            Statistica.Action.DETACH,
-            $"Отсоединён от {position.PathSlug}",
-            position.ParentId.Value,
-            typeof(PositionMatrix).Name,
-            cancellationToken).ConfigureAwait(false);
+        if (position.ParentId != null)
+        {
+            await _stats.CreateAsync(
+                position.Id.Value,
+                typeof(PositionMatrix).Name,
+                Statistica.Level.FINE,
+                Statistica.Action.DETACH,
+                $"Отсоединён от {position.PathSlug}",
+                position.ParentId.Value,
+                typeof(PositionMatrix).Name,
+                cancellationToken).ConfigureAwait(false);
+        }
 
         await _stats.CreateAsync(
             position.Id.Value,
@@ -462,12 +468,12 @@ public class PositionMatrixService : IPositionMatrixService
         if (position.Move(positionParent))
         {
             var resultUpdateRepos = await _positionMatrixRepository.UpdateAsync(position, cancellationToken).ConfigureAwait(false);
-            if(resultUpdateRepos.IsFailure)
+            if (resultUpdateRepos.IsFailure)
             {
                 _logger.LogError("Error _positionMatrixRepository.UpdateAsync");
                 return resultUpdateRepos.Error;
             }
-            var resultUpdate = await this.UpdateAsync(position, null, cancellationToken).ConfigureAwait(false);
+            var resultUpdate = await UpdateAsync(position, positionDto: null, cancellationToken).ConfigureAwait(false);
             if (resultUpdate.IsFailure)
             {
                 _logger.LogError("Error PositionMatrixService.UpdateAsync");
@@ -516,7 +522,9 @@ public class PositionMatrixService : IPositionMatrixService
             }
         }
         else
+        {
             return resultChilds.Error;
+        }
 
         return childFound;
     }

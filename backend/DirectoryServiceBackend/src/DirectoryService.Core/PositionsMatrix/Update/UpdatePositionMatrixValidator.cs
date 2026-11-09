@@ -4,7 +4,7 @@ using DirectoryService.Domain.shared;
 using DirectoryService.Domain.PositionsMatrix;
 using FluentValidation;
 
-namespace DirectoryService.Core.PositionsMatrix;
+namespace DirectoryService.Core.PositionsMatrix.Update;
 
 public class UpdatePositionMatrixValidator : AbstractValidator<UpdatePositionMatrixDto>
 {

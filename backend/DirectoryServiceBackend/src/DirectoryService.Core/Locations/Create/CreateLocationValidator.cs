@@ -9,7 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DirectoryService.Core.Locations;
+namespace DirectoryService.Core.Locations.Create;
 
 public class CreateLocationValidator : AbstractValidator<CreateLocationDto>
 {

@@ -1,16 +1,16 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
+using DirectoryService.Core.Locations.Create;
+using DirectoryService.Core.Locations.Update;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 
-
 namespace DirectoryService.Core.Locations;
-
 public class LocationsService: ILocationsService
 {
     private readonly ILocationsRepository _locationsRepository;

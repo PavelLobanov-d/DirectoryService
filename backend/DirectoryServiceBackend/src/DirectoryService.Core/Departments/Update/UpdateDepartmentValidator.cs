@@ -4,7 +4,7 @@ using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.shared;
 using FluentValidation;
 
-namespace DirectoryService.Core.Departments;
+namespace DirectoryService.Core.Departments.Update;
 
 public class UpdateDepartmentValidator : AbstractValidator<UpdateDepartmentDto>
 {

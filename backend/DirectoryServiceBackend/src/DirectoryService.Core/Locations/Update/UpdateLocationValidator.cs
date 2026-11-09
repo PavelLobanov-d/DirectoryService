@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DirectoryService.Core.Locations;
+namespace DirectoryService.Core.Locations.Update;
 
 public class UpdateLocationValidator : AbstractValidator<UpdateLocationDto>
 {
