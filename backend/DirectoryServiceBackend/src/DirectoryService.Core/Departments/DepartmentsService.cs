@@ -20,9 +20,10 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using DirectoryService.Core.Validation;
+using DirectoryService.Core.Departments.Update;
+using DirectoryService.Core.Departments.Create;
 
 namespace DirectoryService.Core.Departments;
-
 public class DepartmentsService : IDepartmentsService
 {
     private readonly IDepartmentsRepository _departmentRepository;
@@ -107,7 +108,8 @@ public class DepartmentsService : IDepartmentsService
                 _logger.LogError("Error _departmentRepository.GetByIdAsync");
                 return GeneralErrors.Failure("ошибка запроса").ToErrors();
             }
-            else if (resultParent.Value == null)
+
+            if (resultParent.Value == null)
             {
                 return GeneralErrors.NotFound((Guid)departmentDto.ParentDepartmentId, "Department").ToErrors();
             }
@@ -122,7 +124,7 @@ public class DepartmentsService : IDepartmentsService
 
         if (resultPositionChief.Value == null)
         {
-            _logger.LogError("Record of PositionMatrix not found {1}", departmentDto.ChiefPositionMatrixId);
+            _logger.LogError("Record of PositionMatrix not found {ChiefPositionMatrixId}", departmentDto.ChiefPositionMatrixId);
             return GeneralErrors.NotFound(departmentDto.ChiefPositionMatrixId, "PositionMatrix").ToErrors();
         }
         else
@@ -144,7 +146,7 @@ public class DepartmentsService : IDepartmentsService
                 return resultParentDepartmentChief.Error.ToErrors();
             if (resultParentDepartmentChief.Value == null)
             {
-                _logger.LogError("Record of DepartmentChiefPosition not found {1}", parent.Id.Value);
+                _logger.LogError("Record of DepartmentChiefPosition not found {DepartmentId}", parent.Id.Value);
                 return GeneralErrors.NotFound(parent.Id.Value, "DepartmentChiefPosition").ToErrors();
             }
 
@@ -157,7 +159,7 @@ public class DepartmentsService : IDepartmentsService
 
             if (resultParentChief.Value == null)
             {
-                _logger.LogError("Record of PositionMatrix not found {1}", resultParentDepartmentChief.Value.PositionMatrixId.Value);
+                _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", resultParentDepartmentChief.Value.PositionMatrixId.Value);
                 return GeneralErrors.NotFound(resultParentDepartmentChief.Value.PositionMatrixId.Value, "PositionMatrix").ToErrors();
             }
             positionChiefParent = resultParentChief.Value;
@@ -202,7 +204,7 @@ public class DepartmentsService : IDepartmentsService
             Statistica.Level.INFO,
             Statistica.Action.CREATE,
             $"Создание департамента {department.Name}",
-            parent == null ? null : parent.Id.Value,
+            parent?.Id.Value,
             parent == null ? null : typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
 
@@ -222,7 +224,7 @@ public class DepartmentsService : IDepartmentsService
         }
         if (resultPosition.Value == null)
         {
-            _logger.LogError("Record of Department not found {1}", departmentId);
+            _logger.LogError("Record of Department not found {DepartmentId}", departmentId);
             return GeneralErrors.NotFound(departmentId, "Department");
         }
         var result = await DeleteAsync(resultPosition.Value, cancellationToken).ConfigureAwait(false);
@@ -244,7 +246,7 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentRepository.GetByParentIdAsync");
             return GeneralErrors.Failure("ошибка запроса");
         }
-        if (resultHasExists.Value.Any())
+        if (resultHasExists.Value.Count > 0)
         {
             _logger.LogError("Has childs for {DepartmentId}", department.Id);
             return Error.Conflict("rules.failure", "есть зависимые департаменты. Удаление запрещено");
@@ -263,8 +265,8 @@ public class DepartmentsService : IDepartmentsService
                 typeof(Department).Name,
                 Statistica.Level.INFO,
                 Statistica.Action.DELETE,
-                $"Удаление",
-                department.ParentId != null ? department.ParentId.Value : null,
+                "Удаление",
+                department.ParentId?.Value,
                 department.ParentId != null ? typeof(Department).Name : null,
                 cancellationToken).ConfigureAwait(false);
             _logger.LogInformation("Deleting of Department {DepartmentId}", department.Id);
@@ -295,9 +297,10 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentRepository.GetByIdAsync");
             return GeneralErrors.Failure("ошибка запроса поиска департамента");
         }
-        else if(resultPosition.Value == null)
+
+        if(resultPosition.Value == null)
         {
-            _logger.LogWarning("не найден Department по {1}", departmentId);
+            _logger.LogWarning("не найден Department по {DepartmentId}", departmentId);
         }
 
         return resultPosition.Value;
@@ -337,7 +340,7 @@ public class DepartmentsService : IDepartmentsService
         }
         if (resultDepartment.Value == null)
         {
-            _logger.LogError("Record of Department not found {1}", departmentId);
+            _logger.LogError("Record of Department not found {DepartmentId}", departmentId);
             return GeneralErrors.NotFound(departmentId, "Department").ToErrors();
         }
 
@@ -373,9 +376,9 @@ public class DepartmentsService : IDepartmentsService
             if (departmentDto.NewName != null || departmentDto.NewSlug != null)
             {
                 var resultIsDuplicate = await _departmentRepository.HasNameSlugAsync(
-                    departmentDto.NewName == null ? department.Name.Value : departmentDto.NewName,
-                    departmentDto.NewSlug == null ? department.Slug.Value : departmentDto.NewSlug,
-                    department.ParentId == null ? null : department.ParentId.Value,
+                    departmentDto.NewName ?? department.Name.Value,
+                    departmentDto.NewSlug ?? department.Slug.Value,
+                    department.ParentId?.Value,
                     department.Id.Value,
                     cancellationToken).ConfigureAwait(false);
 
@@ -389,7 +392,7 @@ public class DepartmentsService : IDepartmentsService
                     return GeneralErrors.AlreadyExist().ToErrors();
                 }
             }
-            if (departmentDto.NewName != null && !department.Name.Value.Equals(departmentDto.NewName))
+            if (departmentDto.NewName != null && !department.Name.Value.Equals(departmentDto.NewName, StringComparison.OrdinalIgnoreCase))
             {
                 var resultNewName = DepartmentName.Create(departmentDto.NewName);
                 if (resultNewName.IsSuccess)
@@ -402,7 +405,7 @@ public class DepartmentsService : IDepartmentsService
                     $"Название изменено с {department.Name} на {newName}",
                     cancellationToken).ConfigureAwait(false);
             }
-            if (departmentDto.NewSlug != null && !department.Slug.Value.Equals(departmentDto.NewSlug))
+            if (departmentDto.NewSlug != null && !department.Slug.Value.Equals(departmentDto.NewSlug, StringComparison.Ordinal))
             {
                 var resultNewNewSlug = Slug.Create(departmentDto.NewSlug);
                 if (resultNewNewSlug.IsSuccess)
@@ -428,16 +431,18 @@ public class DepartmentsService : IDepartmentsService
                     return GeneralErrors.Failure("ошибка поиска родительской должности").ToErrors();
                 }
                 if (resultDepartment.Value != null)
+                {
                     department.SetParent(resultDepartment.Value);
+                }
                 else
                 {
-                    _logger.LogError("Record of Department not found {1}", department.ParentId);
+                    _logger.LogError("Record of Department not found {DepartmentId}", department.ParentId);
                     return GeneralErrors.NotFound(department.ParentId.Value, "Department").ToErrors();
                 }
             }
-            if (department.PathSlug != department.Parent.PathSlugFull)
+            if (department.PathSlug != department.Parent?.PathSlugFull)
             {
-                newPathSlug = department.Parent.PathSlugFull;
+                newPathSlug = department.Parent?.PathSlugFull;
             }
         }
         //потомки
@@ -447,12 +452,13 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentRepository.GetByParentIdAsync");
             return GeneralErrors.Failure("ошибка получения потомков").ToErrors();
         }
-        else if (resultChilds.Value.Count > 0)
+
+        if (resultChilds.Value.Count > 0)
         {
             department.AddChilds(resultChilds.Value);
         }
 
-        if (department.Update(newName, newSlug, null))
+        if (department.Update(newName, newSlug, newDepartmentChiefPosition: null))
         {
             var resultPositions = await _departmentRepository.UpdateAsync(department, cancellationToken).ConfigureAwait(false);
             if (resultPositions.IsFailure)
@@ -474,7 +480,7 @@ public class DepartmentsService : IDepartmentsService
         {
             foreach (Department child in department.Childs)
             {
-                await UpdateAsync(child, null, cancellationToken).ConfigureAwait(false);
+                await UpdateAsync(child, departmentDto: null, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -554,7 +560,7 @@ public class DepartmentsService : IDepartmentsService
             Statistica.Level.FINE,
             Statistica.Action.DETACH,
             $"Отсоединён от {department.PathSlug}",
-            department.ParentId.Value,
+            department.ParentId?.Value,
             typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
 
@@ -570,13 +576,7 @@ public class DepartmentsService : IDepartmentsService
 
         if (department.Move(departmentParent))
         {
-            //   var resultUpdateRepos = await _departmentRepository.UpdateAsync(department, cancellationToken).ConfigureAwait(false);
-            //   if (resultUpdateRepos.IsFailure)
-            //{
-            //_logger.LogError("Error _departmentRepository.UpdateAsync");
-            //return GeneralErrors.Failure("ошибка обновления департамента").ToErrors();
-            //}
-            var resultUpdate = await this.UpdateAsync(department, null, cancellationToken).ConfigureAwait(false);
+            Result<bool, Errors> resultUpdate = await UpdateAsync(department, departmentDto: null, cancellationToken).ConfigureAwait(false);
             if (resultUpdate.IsFailure)
                 return resultUpdate.Error;
 
@@ -621,10 +621,15 @@ public class DepartmentsService : IDepartmentsService
 
         //проверка на подчинённость должности начальника
         if (department.ParentId == null && newChiefPositionMatrix.ParentId != null)
+        {
             return GeneralErrors.OtherError("у головного департамента должен быть начальник высшего уровня");
-        else if (department.ParentId != null && newChiefPositionMatrix.ParentId == null)
+        }
+        if (department.ParentId != null && newChiefPositionMatrix.ParentId == null)
+        {
             return GeneralErrors.OtherError("у подчинённого департамента должен быть начальник, подчинённый начальнику родительского департамента");
-        else if (department.ParentId != null)
+        }
+
+        if (department.ParentId != null)
         {
             var resultParentDepartment = await _departmentRepository.GetByIdAsync(department.ParentId.Value, cancellationToken).ConfigureAwait(false);
             if (resultParentDepartment.IsFailure)
@@ -648,7 +653,7 @@ public class DepartmentsService : IDepartmentsService
             }
             if (resultChiefDepartamentParent.Value == null)
             {
-                _logger.LogError("Record of DepartmentChiefPositionMatrix not found {1}", departmentParent.Id);
+                _logger.LogError("Record of DepartmentChiefPositionMatrix not found {DepartmentId}", departmentParent.Id);
                 return GeneralErrors.NotFound(departmentParent.Id.Value, "DepartmentChiefPositionMatrix");
             }
             DepartmentChiefPosition departamentChiefParent = resultChiefDepartamentParent.Value;
@@ -659,7 +664,7 @@ public class DepartmentsService : IDepartmentsService
                 return resultPositionChiefParent.Error;
             if (resultPositionChiefParent.Value == null)
             {
-                _logger.LogError("Record of PositionMatrix not found {1}", departamentChiefParent.PositionMatrixId.Value);
+                _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", departamentChiefParent.PositionMatrixId.Value);
                 return GeneralErrors.NotFound(departmentParent.Id.Value, "DepartmentChiefPositionMatrix");
             }
 
@@ -681,11 +686,12 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentChiefPositionsRepository.GetByDepartmentIdAsync");
             return GeneralErrors.Failure("ошибка поиска привязки должности начальника департамента");
         }
-        else if (resultDepartmentChiefPosition.Value == null)
+        if (resultDepartmentChiefPosition.Value == null)
         {
-            _logger.LogError("Record of DepartmentChiefPosition not found {1}", department.Id.Value);
+            _logger.LogError("Record of DepartmentChiefPosition not found {DepartmentId}", department.Id.Value);
             return GeneralErrors.NotFound(department.Id.Value, "DepartmentChiefPosition");
         }
+
         var resultDelete = await _departmentChiefPositionsRepository.DeleteAsync(
                 resultDepartmentChiefPosition.Value,
                 cancellationToken).ConfigureAwait(false);
@@ -694,24 +700,24 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentChiefPositionsRepository.DeleteAsync");
             return GeneralErrors.Failure("ошибка удаления привязки должности начальника департамента");
         }
-        DepartmentChiefPosition newDCP = new DepartmentChiefPosition(department, newChiefPositionMatrix);
-        var resultAdd = await _departmentChiefPositionsRepository.AddAsync(newDCP).ConfigureAwait(false);
+        DepartmentChiefPosition newDCP = new (department, newChiefPositionMatrix);
+        var resultAdd = await _departmentChiefPositionsRepository.AddAsync(newDCP, cancellationToken).ConfigureAwait(false);
         if (resultAdd.IsFailure)
         {
             _logger.LogError("Error _departmentChiefPositionsRepository.AddAsync");
             return GeneralErrors.Failure("ошибка создания привязки должности начальника департамента");
         }
         DepartmentChiefPosition newDepartmentChiefPosition = DepartmentChiefPosition.Create(department.Id, newChiefPositionMatrix);
-        department.Update(null, null, newDepartmentChiefPosition);
+        department.Update(newName: null, newSlug: null, newDepartmentChiefPosition);
 
         await _stats.CreateAsync(
-            department.Id.Value,
+            objectId: department.Id.Value,
             typeof(Department).Name,
             Statistica.Level.FINE,
             Statistica.Action.UPDATE,
             $"Изменена должность начальника на {newChiefPositionMatrix.Name}",
-            null,
-            null,
+            parentId: null,
+            parentTypeName: null,
             cancellationToken).ConfigureAwait(false);
 
         var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
@@ -789,7 +795,7 @@ public class DepartmentsService : IDepartmentsService
         }
         if (resultChiefDepartament.Value == null)
         {
-            _logger.LogError("Record of DepartmentChiefPositionMatrix not found {1}", department.Id);
+            _logger.LogError("Record of DepartmentChiefPositionMatrix not found {DepartmentId}", department.Id);
             return GeneralErrors.NotFound(department.Id.Value, "DepartmentChiefPosition");
         }
         DepartmentChiefPosition departamentChief = resultChiefDepartament.Value;
@@ -909,8 +915,10 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentLocationsRepository.GetLocationsByDepartmentIdAsync");
             return GeneralErrors.Failure("ошибка запроса поиска связанных локаций");
         }
-        if (resultLocations.Value.Any(v => v.LocationId == location.Id))
+        if (resultLocations.Value.Exists(v => v.LocationId == location.Id))
+        {
             return GeneralErrors.AlreadyExist();
+        }
 
         DepartmentLocation link;
         try
@@ -931,7 +939,7 @@ public class DepartmentsService : IDepartmentsService
             department.Id.Value,
             department.GetType().Name,
             cancellationToken).ConfigureAwait(false);
-      
+
         var resultSave = await SaveAsync(cancellationToken).ConfigureAwait(false);
         if (resultSave.IsFailure)
             return resultSave.Error;
@@ -951,7 +959,7 @@ public class DepartmentsService : IDepartmentsService
             _logger.LogError("Error _departmentLocationsRepository.GetLocationsByDepartmentIdAsync");
             return GeneralErrors.Failure("ошибка запроса поиска связанных локаций");
         }
-        DepartmentLocation? link = resultLocations.Value.SingleOrDefault(v => v.LocationId.Value == locationId);
+        DepartmentLocation? link = resultLocations.Value?.SingleOrDefault(v => v.LocationId.Value == locationId);
 
         if (link == null)
         {

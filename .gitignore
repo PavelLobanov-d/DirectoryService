@@ -15,7 +15,9 @@
 *credential*.*
 
 # Docker data files
+**/[Ss]eq-data/
 [Ss]eq-data/
+seq-data/
 Seq.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)

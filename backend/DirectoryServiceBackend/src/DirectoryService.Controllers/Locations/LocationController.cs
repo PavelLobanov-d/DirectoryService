@@ -1,9 +1,17 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
+using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Departments.Create;
 using DirectoryService.Core.Locations;
+using DirectoryService.Core.Locations.Create;
+using DirectoryService.Core.Locations.Delete;
+using DirectoryService.Core.Locations.Get;
+using DirectoryService.Core.Locations.GetById;
+using DirectoryService.Core.Locations.GetByIds;
+using DirectoryService.Core.Locations.Update;
 using DirectoryService.Domain.Locations;
+using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryService.Controllers.Locations;
@@ -12,13 +20,7 @@ namespace DirectoryService.Controllers.Locations;
 [ApiController]
 [Route("[controller]")]
 public class LocationController : ControllerBase
-{
-    private readonly ILocationsService _locationsService;
-    public LocationController(ILocationsService locationsService)
-    {
-        _locationsService = locationsService;
-    }
-    
+{    
     [HttpPost]
     [ProducesResponseType<Envelope<CreatedObjectGuid>>(201)]
     [ProducesResponseType<Envelope>(500)]
@@ -26,10 +28,12 @@ public class LocationController : ControllerBase
     [ProducesResponseType<Envelope>(404)]
     [ProducesResponseType<Envelope>(409)]
     public async Task<EndPointResult<CreatedObjectGuid>> CreateAsync(
+        [FromServices] ICommandHandler<CreatedObjectGuid, LocationCreateCommand> handler,
         [FromBody] CreateLocationDto request,
         CancellationToken cancellationToken)
     {
-        return await _locationsService.CreateAsync(request, cancellationToken).ConfigureAwait(false);
+        var command = new LocationCreateCommand(request);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     [HttpGet]
@@ -37,10 +41,12 @@ public class LocationController : ControllerBase
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
     public async Task<EndPointResult<List<Location>>> GetAsync(
+        [FromServices] ICommandHandler<List<Location>, LocationGetCommand> handler,
         [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {
-        return await _locationsService.GetAsync(request, cancellationToken).ConfigureAwait(false);
+        var command = new LocationGetCommand(request);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     [HttpGet("{locationId:guid}")]
@@ -48,10 +54,12 @@ public class LocationController : ControllerBase
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
     public async Task<EndPointResult<Location?>> GetByIdAsync(
+        [FromServices] ICommandHandler<Location?, LocationGetByIdCommand> handler,
         [FromRoute] Guid locationId,
         CancellationToken cancellationToken)
     {
-        return await _locationsService.GetByIdAsync(locationId, cancellationToken).ConfigureAwait(false);
+        var command = new LocationGetByIdCommand(locationId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     [HttpPut("{locationId:guid}")]
@@ -61,11 +69,13 @@ public class LocationController : ControllerBase
     [ProducesResponseType<Envelope>(404)]
     [ProducesResponseType<Envelope>(409)]
     public async Task<EndPointResult<bool>> UpdateAsync(
+        [FromServices] ICommandHandler<bool, LocationUpdateCommand> handler,
         [FromRoute] Guid locationId,
         [FromBody] UpdateLocationDto request,
         CancellationToken cancellationToken)
     {
-        return await _locationsService.UpdateAsync(locationId, request, cancellationToken).ConfigureAwait(false);
+        var command = new LocationUpdateCommand(locationId, request);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
     [HttpDelete("{locationId:guid}")]
@@ -73,9 +83,11 @@ public class LocationController : ControllerBase
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
     public async Task<EndPointResult<bool>> DeleteAsync(
+        [FromServices] ICommandHandler<bool, LocationDeleteCommand> handler,
         [FromRoute] Guid locationId,
         CancellationToken cancellationToken)
     {
-        return await _locationsService.DeleteAsync(locationId, cancellationToken).ConfigureAwait(false);
+        var command = new LocationDeleteCommand(locationId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 }

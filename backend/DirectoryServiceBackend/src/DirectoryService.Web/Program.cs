@@ -34,17 +34,13 @@ try
     string? connectionString = Environment.GetEnvironmentVariable("DIRECTORY_SERVICE_CONNECTIONSTRING");
 
     if (connectionString == null)
-    {
         throw new DSException("Не указана строка подключения");
-    }
 
     builder.Services.AddProgramDependencies(builder.Configuration);
 
     builder.Services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>(_ => new NpgsqlConnectionFactory(connectionString));
     builder.Services.AddDbContext<DirectoryServiceDbContext>(options =>
-    {
-        options.UseNpgsql(connectionString);
-    });
+        options.UseNpgsql(connectionString));
     builder.Services.AddScoped<IDirectoryServiceDbContext>(provider =>
         provider.GetRequiredService<DirectoryServiceDbContext>());
 
@@ -71,7 +67,7 @@ try
     }
 
 
-    app.MapGet("/guid", () => $"{(Guid.CreateVersion7())}");
+    app.MapGet("/guid", () => $"{Guid.CreateVersion7()}");
 
     await app.RunAsync().ConfigureAwait(false);
 }
@@ -81,6 +77,6 @@ catch (Exception ex)
 }
 finally
 {
-    Log.CloseAndFlush();
+    await Log.CloseAndFlushAsync().ConfigureAwait(false);
 }
 
