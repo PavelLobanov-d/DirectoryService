@@ -1,32 +1,34 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
+using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Abstractions;
+using System.Transactions;
 
 namespace DirectoryService.Core.PositionsMatrix.Create;
 
 public class PositionMatrixCreateHandler : ICommandHandler<CreatedObjectGuid, PositionMatrixCreateCommand>
 {
     private readonly IPositionMatrixRepository _positionMatrixRepository;
-    private readonly IPositionMatrixService _positionMatrixService;
     private readonly CreatePositionMatrixValidator _createValidator;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<PositionMatrixCreateHandler> _logger;
     private readonly IStatisticsService _stats;
     public PositionMatrixCreateHandler(
         IPositionMatrixRepository positionMatrixRepository,
-        IPositionMatrixService positionMatrixService,
         CreatePositionMatrixValidator createValidator,
+        ITransactionManager transactionManager,
         ILogger<PositionMatrixCreateHandler> logger,
         IStatisticsService stats)
     {
         _positionMatrixRepository = positionMatrixRepository;
-        _positionMatrixService = positionMatrixService;
         _createValidator = createValidator;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -87,12 +89,22 @@ public class PositionMatrixCreateHandler : ICommandHandler<CreatedObjectGuid, Po
             parent = resultParent.Value;
         }
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         PositionMatrix positionMatrix = PositionMatrix.Create(resultPositionName.Value, resultSlug.Value, parent);
         var resultAdd = await _positionMatrixRepository.AddAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
         if (resultAdd.IsFailure)
         {
             _logger.LogError("Error creating record of PositionMatrix");
-            return GeneralErrors.Failure("ошибка добавления должности").ToErrors();
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return resultAdd.Error.ToErrors();
         }
         _logger.LogInformation("PositionMatrix created with Id {PositionMatrixId}", resultAdd.Value);
 
@@ -117,9 +129,19 @@ public class PositionMatrixCreateHandler : ICommandHandler<CreatedObjectGuid, Po
                 cancellationToken).ConfigureAwait(false);
         }
 
-        var resultSave = await _positionMatrixService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return new CreatedObjectGuid(resultAdd.Value);
     }

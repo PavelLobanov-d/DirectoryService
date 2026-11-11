@@ -20,14 +20,14 @@ public interface ILocationsService
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken);
+    //public Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken);
     /// <summary>
     /// удалить локацию
     /// </summary>
     /// <param name="locationId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Result<bool, Error>> DeleteAsync(Guid locationId, CancellationToken cancellationToken);
+    //public Task<Result<bool, Error>> DeleteAsync(Guid locationId, CancellationToken cancellationToken);
     /// <summary>
     /// получить локацию по Id
     /// </summary>
@@ -49,11 +49,5 @@ public interface ILocationsService
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    public Task<Result<bool, Errors>> UpdateAsync(Guid locationId, UpdateLocationDto locationDto, CancellationToken cancellationToken);
-    /// <summary>
-    /// сохранить изменения в контексте
-    /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
-    public Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken);
+    //public Task<Result<bool, Errors>> UpdateAsync(Guid locationId, UpdateLocationDto locationDto, CancellationToken cancellationToken);
 }

@@ -1,5 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
 using DirectoryService.Core.PositionsMatrix;
 using DirectoryService.Core.Statistics;
@@ -11,150 +12,114 @@ using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.Departments.ChangeChiefPositionMatrix;
+
 public class DepartmentChangeChiefPositionMatrixHandler : ICommandHandler<bool, DepartmentChangeChiefPositionMatrixCommand>
 {
     private readonly IDepartmentsRepository _departmentRepository;
-    private readonly IDepartmentsService _departmentService;
     private readonly IPositionMatrixService _positionMatrixService;
     private readonly IDepartmentsChiefPositionRepository _departmentChiefPositionsRepository;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<DepartmentChangeChiefPositionMatrixHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public DepartmentChangeChiefPositionMatrixHandler(
         IDepartmentsRepository departmentRepository,
-        IDepartmentsService departmentService,
         IPositionMatrixService positionMatrixService,
         IDepartmentsChiefPositionRepository departmentChiefPositionsRepository,
+        ITransactionManager transactionManager,
         ILogger<DepartmentChangeChiefPositionMatrixHandler> logger,
         IStatisticsService stats)
     {
         _departmentChiefPositionsRepository = departmentChiefPositionsRepository;
         _departmentRepository = departmentRepository;
-        _departmentService = departmentService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _positionMatrixService = positionMatrixService;
         _stats = stats;
     }
     public async Task<Result<bool, Errors>> ExecuteAsync(
-        DepartmentChangeChiefPositionMatrixCommand command,
-        CancellationToken cancellationToken = default)
+    DepartmentChangeChiefPositionMatrixCommand command,
+    CancellationToken cancellationToken = default)
     {
-        //поиск изменяемого департамента
-        var resultDepartment = await _departmentRepository.GetByIdAsync(command.DepartmentId, cancellationToken).ConfigureAwait(false);
-        if (resultDepartment.IsFailure)
+        // 1. Поиск изменяемого департамента
+        var departmentResult = await _departmentRepository.GetByIdAsync(command.DepartmentId, cancellationToken).ConfigureAwait(false);
+        if (departmentResult.IsFailure)
         {
-            _logger.LogError("Error _departmentRepository.GetByIdAsync");
-            return GeneralErrors.Failure("ошибка запроса поиска департамента").ToErrors();
+            _logger.LogError("Failed to get department {DepartmentId}: {Error}", command.DepartmentId, departmentResult.Error);
+            return GeneralErrors.Failure("Ошибка запроса поиска департамента").ToErrors();
         }
-        if (resultDepartment.Value == null)
-        {
-            return GeneralErrors.NotFound(command.DepartmentId, "Department").ToErrors();
-        }
-        Department department = resultDepartment.Value;
+        if (departmentResult.Value is null)
+            return GeneralErrors.NotFound(command.DepartmentId, nameof(Department)).ToErrors();
 
-        //поиск новой должности руководителя
-        var resultChiefPositionMatrixId = await _positionMatrixService.GetByIdAsync(command.NewChiefPositionMatrixId, cancellationToken).ConfigureAwait(false);
-        if (resultChiefPositionMatrixId.IsFailure)
-            return resultChiefPositionMatrixId.Error.ToErrors();
+        var department = departmentResult.Value;
 
-        if (resultChiefPositionMatrixId.Value == null)
-        {
-            return GeneralErrors.NotFound(command.NewChiefPositionMatrixId, "PositionMatrix").ToErrors();
-        }
-        PositionMatrix newChiefPositionMatrix = resultChiefPositionMatrixId.Value;
+        // 2. Поиск новой должности руководителя
+        var newPositionResult = await _positionMatrixService.GetByIdAsync(command.NewChiefPositionMatrixId, cancellationToken).ConfigureAwait(false);
+        if (newPositionResult.IsFailure)
+            return newPositionResult.Error.ToErrors();
+
+        if (newPositionResult.Value is null)
+            return GeneralErrors.NotFound(command.NewChiefPositionMatrixId, nameof(PositionMatrix)).ToErrors();
+
+        var newChiefPositionMatrix = newPositionResult.Value;
 
         if (department.ChiefPositionMatrix.Id == newChiefPositionMatrix.Id)
             return false;
 
-        //проверка на подчинённость должности начальника
-        if (department.ParentId == null && newChiefPositionMatrix.ParentId != null)
+        // 3. Проверка иерархии должностей относительно родительского департамента
+        var hierarchyCheckResult = await ValidateHierarchyAsync(department, newChiefPositionMatrix, cancellationToken).ConfigureAwait(false);
+        if (hierarchyCheckResult.IsFailure)
+            return hierarchyCheckResult.Error;
+
+        // 4. Поиск текущей привязки начальника департамента
+        var currentChiefPositionResult = await _departmentChiefPositionsRepository
+            .GetByDepartmentIdAsync(department.Id.Value, cancellationToken).ConfigureAwait(false);
+
+        if (currentChiefPositionResult.IsFailure)
         {
-            return GeneralErrors.OtherError("у головного департамента должен быть начальник высшего уровня").ToErrors();
+            _logger.LogError("Failed to get chief position for department {DepartmentId}: {Error}", department.Id.Value, currentChiefPositionResult.Error);
+            return GeneralErrors.Failure("Ошибка поиска привязки должности начальника департамента").ToErrors();
         }
-        if (department.ParentId != null && newChiefPositionMatrix.ParentId == null)
+        if (currentChiefPositionResult.Value is null)
         {
-            return GeneralErrors.OtherError("у подчинённого департамента должен быть начальник, подчинённый начальнику родительского департамента").ToErrors();
+            _logger.LogError("Record of DepartmentChiefPosition not found for department {DepartmentId}", department.Id.Value);
+            return GeneralErrors.NotFound(department.Id.Value, nameof(DepartmentChiefPosition)).ToErrors();
         }
 
-        if (department.ParentId != null)
+        // 5. Выполнение изменений в транзакции
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
+        var deleteResult = await _departmentChiefPositionsRepository
+            .DeleteAsync(currentChiefPositionResult.Value, cancellationToken).ConfigureAwait(false);
+
+        if (deleteResult.IsFailure)
         {
-            var resultParentDepartment = await _departmentRepository.GetByIdAsync(department.ParentId.Value, cancellationToken).ConfigureAwait(false);
-            if (resultParentDepartment.IsFailure)
-            {
-                _logger.LogError("Error _departmentRepository.GetByIdAsync");
-                return GeneralErrors.Failure("ошибка запроса поиска департамента").ToErrors();
-            }
-            if (resultParentDepartment.Value == null)
-            {
-                return GeneralErrors.NotFound(department.ParentId.Value, "Department").ToErrors();
-            }
-            Department departmentParent = resultParentDepartment.Value;
+            _logger.LogError("Failed to delete old chief position for department {DepartmentId}: {Error}", department.Id.Value, deleteResult.Error);
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
 
-            var resultChiefDepartamentParent = await _departmentChiefPositionsRepository.GetByDepartmentIdAsync(
-                departmentParent.Id.Value,
-                cancellationToken).ConfigureAwait(false);
-            if (resultChiefDepartamentParent.IsFailure)
-            {
-                _logger.LogError("Error _departmentChiefPositionsRepository.GetByDepartmentIdAsync");
-                return GeneralErrors.Failure("ошибка поиска должности начальника родительского департамента").ToErrors();
-            }
-            if (resultChiefDepartamentParent.Value == null)
-            {
-                _logger.LogError("Record of DepartmentChiefPositionMatrix not found {DepartmentId}", departmentParent.Id);
-                return GeneralErrors.NotFound(departmentParent.Id.Value, "DepartmentChiefPositionMatrix").ToErrors();
-            }
-            DepartmentChiefPosition departamentChiefParent = resultChiefDepartamentParent.Value;
-            var resultPositionChiefParent = await _positionMatrixService.GetByIdAsync(
-                departamentChiefParent.PositionMatrixId.Value,
-                cancellationToken).ConfigureAwait(false);
-            if (resultPositionChiefParent.IsFailure)
-                return resultPositionChiefParent.Error.ToErrors();
-            if (resultPositionChiefParent.Value == null)
-            {
-                _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", departamentChiefParent.PositionMatrixId.Value);
-                return GeneralErrors.NotFound(departmentParent.Id.Value, "DepartmentChiefPositionMatrix").ToErrors();
-            }
-
-            var resultCheck = await _positionMatrixService.FindChildByIdAsync(
-            resultPositionChiefParent.Value,
-            newChiefPositionMatrix.Id,
-            cancellationToken).ConfigureAwait(false);
-            if (resultCheck.IsFailure)
-                return resultCheck.Error.ToErrors();
-            if (resultCheck.Value == null)
-                return GeneralErrors.ValueIsInvalid("должность начальника департамента должна быть зависима от должности начальника родительского департамента").ToErrors();
+            return deleteResult.Error.ToErrors();
         }
 
-        var resultDepartmentChiefPosition = await _departmentChiefPositionsRepository.GetByDepartmentIdAsync(
-                department.Id.Value,
-                cancellationToken).ConfigureAwait(false);
-        if (resultDepartmentChiefPosition.IsFailure)
+        // Используем ОДИН экземпляр новой привязки
+        var newDepartmentChiefPosition = DepartmentChiefPosition.Create(department.Id, newChiefPositionMatrix);
+
+        var addResult = await _departmentChiefPositionsRepository.AddAsync(newDepartmentChiefPosition, cancellationToken).ConfigureAwait(false);
+        if (addResult.IsFailure)
         {
-            _logger.LogError("Error _departmentChiefPositionsRepository.GetByDepartmentIdAsync");
-            return GeneralErrors.Failure("ошибка поиска привязки должности начальника департамента").ToErrors();
-        }
-        if (resultDepartmentChiefPosition.Value == null)
-        {
-            _logger.LogError("Record of DepartmentChiefPosition not found {DepartmentId}", department.Id.Value);
-            return GeneralErrors.NotFound(department.Id.Value, "DepartmentChiefPosition").ToErrors();
+            _logger.LogError("Failed to add new chief position for department {DepartmentId}: {Error}", department.Id.Value, addResult.Error);
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return addResult.Error.ToErrors();
         }
 
-        var resultDelete = await _departmentChiefPositionsRepository.DeleteAsync(
-                resultDepartmentChiefPosition.Value,
-                cancellationToken).ConfigureAwait(false);
-        if (resultDelete.IsFailure)
-        {
-            _logger.LogError("Error _departmentChiefPositionsRepository.DeleteAsync");
-            return GeneralErrors.Failure("ошибка удаления привязки должности начальника департамента").ToErrors();
-        }
-        DepartmentChiefPosition newDCP = new(department, newChiefPositionMatrix);
-        var resultAdd = await _departmentChiefPositionsRepository.AddAsync(newDCP, cancellationToken).ConfigureAwait(false);
-        if (resultAdd.IsFailure)
-        {
-            _logger.LogError("Error _departmentChiefPositionsRepository.AddAsync");
-            return GeneralErrors.Failure("ошибка создания привязки должности начальника департамента").ToErrors();
-        }
-        DepartmentChiefPosition newDepartmentChiefPosition = DepartmentChiefPosition.Create(department.Id, newChiefPositionMatrix);
         department.Update(newName: null, newSlug: null, newDepartmentChiefPosition);
 
         await _stats.CreateAsync(
@@ -167,10 +132,81 @@ public class DepartmentChangeChiefPositionMatrixHandler : ICommandHandler<bool, 
             parentTypeName: null,
             cancellationToken).ConfigureAwait(false);
 
-        var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return true;
+    }
+
+    private async Task<UnitResult<Errors>> ValidateHierarchyAsync(
+        Department department,
+        PositionMatrix newChiefPositionMatrix,
+        CancellationToken cancellationToken)
+    {
+        if (department.ParentId is null && newChiefPositionMatrix.ParentId is not null)
+            return GeneralErrors.OtherError("У головного департамента должен быть начальник высшего уровня").ToErrors();
+
+        if (department.ParentId is not null && newChiefPositionMatrix.ParentId is null)
+            return GeneralErrors.OtherError("У подчинённого департамента должен быть начальник, подчинённый начальнику родительского департамента").ToErrors();
+
+        if (department.ParentId is null)
+            return UnitResult.Success<Errors>();
+
+        var parentDepartmentResult = await _departmentRepository.GetByIdAsync(department.ParentId.Value, cancellationToken).ConfigureAwait(false);
+        if (parentDepartmentResult.IsFailure)
+        {
+            _logger.LogError("Failed to get parent department {ParentId}: {Error}", department.ParentId.Value, parentDepartmentResult.Error);
+            return GeneralErrors.Failure("Ошибка запроса поиска родительского департамента").ToErrors();
+        }
+        if (parentDepartmentResult.Value is null)
+            return GeneralErrors.NotFound(department.ParentId.Value, nameof(Department)).ToErrors();
+
+        var parentChiefResult = await _departmentChiefPositionsRepository
+            .GetByDepartmentIdAsync(parentDepartmentResult.Value.Id.Value, cancellationToken).ConfigureAwait(false);
+
+        if (parentChiefResult.IsFailure)
+        {
+            _logger.LogError("Failed to get chief position for parent department {ParentId}: {Error}", parentDepartmentResult.Value.Id.Value, parentChiefResult.Error);
+            return GeneralErrors.Failure("Ошибка поиска должности начальника родительского департамента").ToErrors();
+        }
+        if (parentChiefResult.Value is null)
+        {
+            _logger.LogError("Record of DepartmentChiefPosition not found for parent department {ParentId}", parentDepartmentResult.Value.Id.Value);
+            return GeneralErrors.NotFound(parentDepartmentResult.Value.Id.Value, nameof(DepartmentChiefPosition)).ToErrors();
+        }
+
+        var parentPositionResult = await _positionMatrixService
+            .GetByIdAsync(parentChiefResult.Value.PositionMatrixId.Value, cancellationToken).ConfigureAwait(false);
+
+        if (parentPositionResult.IsFailure)
+            return parentPositionResult.Error.ToErrors();
+
+        if (parentPositionResult.Value is null)
+        {
+            _logger.LogError("Record of PositionMatrix not found {PositionMatrixId}", parentChiefResult.Value.PositionMatrixId.Value);
+            return GeneralErrors.NotFound(parentChiefResult.Value.PositionMatrixId.Value, nameof(PositionMatrix)).ToErrors();
+        }
+
+        var childCheckResult = await _positionMatrixService
+            .FindChildByIdAsync(parentPositionResult.Value, newChiefPositionMatrix.Id, cancellationToken).ConfigureAwait(false);
+
+        if (childCheckResult.IsFailure)
+            return childCheckResult.Error.ToErrors();
+
+        if (childCheckResult.Value is null)
+            return GeneralErrors.ValueIsInvalid("Должность начальника департамента должна быть зависима от должности начальника родительского департамента").ToErrors();
+
+        return UnitResult.Success<Errors>();
     }
 }

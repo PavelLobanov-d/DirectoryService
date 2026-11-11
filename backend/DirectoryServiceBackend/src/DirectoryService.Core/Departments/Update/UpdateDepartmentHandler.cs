@@ -1,34 +1,33 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.Core.Abstractions;
-using DirectoryService.Core.Departments.LinkPosition;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
-using DirectoryService.Core.Validation;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using System.Reflection.Metadata.Ecma335;
 
 namespace DirectoryService.Core.Departments.Update;
 public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCommand>
 {
     private readonly IDepartmentsRepository _departmentRepository;
-    private readonly IDepartmentsService _departmentService;
+    private readonly ITransactionManager _transactionManager;
     private readonly UpdateDepartmentValidator _updateValidator;
-
-    private readonly ILogger<DepartmentsService> _logger;
+    private readonly ILogger<UpdateDepartmentHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public UpdateDepartmentHandler(
         IDepartmentsRepository departmentRepository,
-        IDepartmentsService departmentService,
+        ITransactionManager transactionManager,
         UpdateDepartmentValidator updateValidator,
-        ILogger<DepartmentsService> logger,
+        ILogger<UpdateDepartmentHandler> logger,
         IStatisticsService stats)
     {
         _departmentRepository = departmentRepository;
-        _departmentService = departmentService;
+        _transactionManager = transactionManager;
         _updateValidator = updateValidator;
         _logger = logger;
         _stats = stats;
@@ -49,14 +48,36 @@ public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCom
             return GeneralErrors.NotFound(command.DepartmentId, "Department").ToErrors();
         }
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         Department department = resultDepartment.Value;
         var result = await UpdateAsync(department, command.DepartmentDto, cancellationToken).ConfigureAwait(false);
-        if (result.IsSuccess)
+        if (result.IsFailure)
         {
-            var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-            if (resultSave.IsFailure)
-                return resultSave.Error.ToErrors();
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+            return result.Error;
         }
+
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
+
         return result;
     }
     private async Task<Result<bool, Errors>> UpdateAsync(
@@ -155,7 +176,7 @@ public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCom
         if (resultChilds.IsFailure)
         {
             _logger.LogError("Error _departmentRepository.GetByParentIdAsync");
-            return GeneralErrors.Failure("ошибка получения потомков").ToErrors();
+            return resultChilds.Error.ToErrors();
         }
 
         if (resultChilds.Value.Count > 0)
@@ -169,7 +190,7 @@ public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCom
             if (resultPositions.IsFailure)
             {
                 _logger.LogError("Error _departmentRepository.UpdateAsync");
-                return GeneralErrors.Failure("ошибка обновления должности").ToErrors();
+                return resultPositions.Error.ToErrors();
             }
             result = resultPositions.Value;
         }
@@ -185,7 +206,9 @@ public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCom
         {
             foreach (Department child in department.Childs)
             {
-                await UpdateAsync(child, departmentDto: null, cancellationToken).ConfigureAwait(false);
+                var resultUpdateChild = await UpdateAsync(child, departmentDto: null, cancellationToken).ConfigureAwait(false);
+                if (resultUpdateChild.IsFailure)
+                    return resultUpdateChild.Error;
             }
         }
 

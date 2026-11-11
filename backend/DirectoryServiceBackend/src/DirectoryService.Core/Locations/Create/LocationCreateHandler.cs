@@ -1,11 +1,12 @@
 ﻿using CSharpFunctionalExtensions;
+using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Abstractions;
 
 
 namespace DirectoryService.Core.Locations.Create;
@@ -13,21 +14,21 @@ namespace DirectoryService.Core.Locations.Create;
 public class LocationCreateHandler : ICommandHandler<CreatedObjectGuid, LocationCreateCommand>
 {
     private readonly ILocationsRepository _locationsRepository;
-    private readonly ILocationsService _locationsService;
     private readonly CreateLocationValidator _createValidator;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<LocationCreateHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public LocationCreateHandler(
         ILocationsRepository locationsRepository,
-        ILocationsService locationsService,
         CreateLocationValidator createValidator,
+        ITransactionManager transactionManager,
         ILogger<LocationCreateHandler> logger,
         IStatisticsService stats)
     {
         _locationsRepository = locationsRepository;
-        _locationsService = locationsService;
         _createValidator = createValidator;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -62,12 +63,22 @@ public class LocationCreateHandler : ICommandHandler<CreatedObjectGuid, Location
             return GeneralErrors.ValueIsInvalid("адрес локации").ToErrors();
         }
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         var location = Location.Create(resultLocationName.Value, resultLocationAddress.Value);
         var resultAdd = await _locationsRepository.AddAsync(location, cancellationToken).ConfigureAwait(false);
         if (resultAdd.IsFailure)
         {
             _logger.LogError("Error creating record of Location");
-            return GeneralErrors.Failure("ошибка добавления локации").ToErrors();
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return resultAdd.Error.ToErrors();
         }
 
         await _stats.CreateAsync(
@@ -80,9 +91,19 @@ public class LocationCreateHandler : ICommandHandler<CreatedObjectGuid, Location
 
         _logger.LogInformation("Location created with Id {1}", resultAdd.Value);
 
-        var resultSave = await _locationsService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return new CreatedObjectGuid(resultAdd.Value);
     }
