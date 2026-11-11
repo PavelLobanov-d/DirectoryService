@@ -42,11 +42,11 @@ public class PositionMatrixController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType<Envelope<List<PositionMatrix>>>(200)]
+    [ProducesResponseType<Envelope<List<PositionMatrixDto>>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<PositionMatrix>>> GetAsync(
-        [FromServices] ICommandHandler<List<PositionMatrix>, PositionMatrixGetCommand> handler,
+    public async Task<EndPointResult<List<PositionMatrixDto>>> GetAsync(
+        [FromServices] ICommandHandler<List<PositionMatrixDto>, PositionMatrixGetCommand> handler,
         [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {
