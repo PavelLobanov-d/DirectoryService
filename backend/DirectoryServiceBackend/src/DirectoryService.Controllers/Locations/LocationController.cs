@@ -18,7 +18,7 @@ namespace DirectoryService.Controllers.Locations;
 
 
 [ApiController]
-[Route("[controller]")]
+[Route("locations")]
 public class LocationController : ControllerBase
 {    
     [HttpPost]

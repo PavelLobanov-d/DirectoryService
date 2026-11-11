@@ -2,6 +2,7 @@
 using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
+using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Core.Departments.LinkLocation;
 using DirectoryService.Core.PositionsMatrix;
 using DirectoryService.Core.Statistics;
@@ -22,6 +23,7 @@ public class DepartmentLinkPositionHandler : ICommandHandler<CreatedObjectGuid, 
     private readonly IDepartmentsRepository _departmentRepository;
     private readonly IPositionMatrixService _positionMatrixService;
     private readonly IDepartmentsChiefPositionRepository _departmentChiefPositionsRepository;
+    private readonly IDepartmentPositionsRepository _departmentPositionsRepository;
     private readonly ITransactionManager _transactionManager;
     private readonly ILogger<DepartmentLinkPositionHandler> _logger;
     private readonly IStatisticsService _stats;
@@ -30,11 +32,13 @@ public class DepartmentLinkPositionHandler : ICommandHandler<CreatedObjectGuid, 
         IDepartmentsRepository departmentRepository,
         IPositionMatrixService positionMatrixService,
         IDepartmentsChiefPositionRepository departmentChiefPositionsRepository,
+        IDepartmentPositionsRepository departmentPositionsRepository,
         ITransactionManager transactionManager,
         ILogger<DepartmentLinkPositionHandler> logger,
         IStatisticsService stats)
     {
         _departmentChiefPositionsRepository = departmentChiefPositionsRepository;
+        _departmentPositionsRepository = departmentPositionsRepository;
         _departmentRepository = departmentRepository;
         _positionMatrixService = positionMatrixService;
         _transactionManager = transactionManager;
@@ -68,6 +72,24 @@ public class DepartmentLinkPositionHandler : ICommandHandler<CreatedObjectGuid, 
             return GeneralErrors.NotFound(command.PositionMatrixId, "PositionMatrix").ToErrors();
         }
         PositionMatrix positionMatrix = resultPositionMatrix.Value;
+
+        //проверка на существование связи
+        var resultLink = await _departmentPositionsRepository
+            .GetByDepartmentAndPositionAsync(command.DepartmentId, command.PositionMatrixId, cancellationToken)
+            .ConfigureAwait(false);
+        if (resultLink.IsFailure)
+        {
+            _logger.LogError("Error _departmentPositionsRepository.GetByDepartmentAndPositionAsync");
+            return GeneralErrors.Failure("ошибка запроса поиска связи подразделение-должность").ToErrors();
+        }
+        if (resultLink.Value != null)
+        {
+            _logger.LogError(
+                "Department {DepartmentId} is already linked to PositionMatrix {PositionMatrixId}",
+                command.DepartmentId,
+                command.PositionMatrixId);
+            return Error.Conflict("record.already.exist", "должность уже привязана к подразделению").ToErrors();
+        }
 
         //поиск должности начальника
         var resultChiefDepartament = await _departmentChiefPositionsRepository.GetByDepartmentIdAsync(

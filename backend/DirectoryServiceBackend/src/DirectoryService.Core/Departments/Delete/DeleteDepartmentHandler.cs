@@ -1,32 +1,47 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
+using DirectoryService.Core.DepartmentChiefPositions;
+using DirectoryService.Core.DepartmentLocations;
+using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Core.Statistics;
+using DirectoryService.Domain.DepartmentLocations;
+using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
-using System.Transactions;
 
 namespace DirectoryService.Core.Departments.Delete;
+
 public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCommand>
 {
     private readonly IDepartmentsRepository _departmentRepository;
+    private readonly IDepartmentPositionsRepository _departmentPositionsRepository;
+    private readonly IDepartmentLocationsRepository _departmentLocationsRepository;
+    private readonly IDepartmentsChiefPositionRepository _departmentChiefPositionsRepository;
     private readonly ITransactionManager _transactionManager;
     private readonly ILogger<DeleteDepartmentHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public DeleteDepartmentHandler(
         IDepartmentsRepository departmentRepository,
+        IDepartmentPositionsRepository departmentPositionsRepository,
+        IDepartmentLocationsRepository departmentLocationsRepository,
+        IDepartmentsChiefPositionRepository departmentChiefPositionsRepository,
         ITransactionManager transactionManager,
         ILogger<DeleteDepartmentHandler> logger,
         IStatisticsService stats)
     {
         _departmentRepository = departmentRepository;
+        _departmentPositionsRepository = departmentPositionsRepository;
+        _departmentLocationsRepository = departmentLocationsRepository;
+        _departmentChiefPositionsRepository = departmentChiefPositionsRepository;
         _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
+
     public async Task<Result<bool, Errors>> ExecuteAsync(DeleteDepartmentCommand command, CancellationToken cancellationToken = default)
     {
         var resultDepartment = await _departmentRepository.GetByIdAsync(command.DepartmentId, cancellationToken).ConfigureAwait(false);
@@ -67,15 +82,35 @@ public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCom
 
         await using var transactionScope = transactionScopeResult.Value;
 
+        // При удалении подразделения его связи удаляются в той же транзакции.
+        foreach (DepartmentPosition link in department.DepartmentPositions)
+        {
+            var resultLinkDelete = await _departmentPositionsRepository.DeleteAsync(link, cancellationToken).ConfigureAwait(false);
+            if (resultLinkDelete.IsFailure)
+                return await RollbackAsync(transactionScope, "ошибка удаления связи подразделение-должность", cancellationToken).ConfigureAwait(false);
+        }
+
+        foreach (DepartmentLocation link in department.DepartmentLocations)
+        {
+            var resultLinkDelete = await _departmentLocationsRepository.DeleteAsync(link, cancellationToken).ConfigureAwait(false);
+            if (resultLinkDelete.IsFailure)
+                return await RollbackAsync(transactionScope, "ошибка удаления связи подразделение-локация", cancellationToken).ConfigureAwait(false);
+        }
+
+        if (department.DepartmentChiefPosition != null)
+        {
+            var resultChiefDelete = await _departmentChiefPositionsRepository
+                .DeleteAsync(department.DepartmentChiefPosition, cancellationToken)
+                .ConfigureAwait(false);
+            if (resultChiefDelete.IsFailure)
+                return await RollbackAsync(transactionScope, "ошибка удаления связи подразделение-руководитель", cancellationToken).ConfigureAwait(false);
+        }
+
         var deleteResult = await _departmentRepository.DeleteAsync(department, cancellationToken).ConfigureAwait(false);
         if (deleteResult.IsFailure)
         {
             _logger.LogError("Error _departmentRepository.DeleteAsync for {DepartmentId}", department.Id);
-            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
-            if (rollbackResult.IsFailure)
-                return rollbackResult.Error.ToErrors();
-
-            return GeneralErrors.Failure("ошибка удаления департамента").ToErrors();
+            return await RollbackAsync(transactionScope, "ошибка удаления департамента", cancellationToken).ConfigureAwait(false);
         }
 
         if (deleteResult.Value)
@@ -110,4 +145,15 @@ public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCom
         return deleteResult.Value;
     }
 
+    private static async Task<Result<bool, Errors>> RollbackAsync(
+        ITransactionScope transactionScope,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+        if (rollbackResult.IsFailure)
+            return rollbackResult.Error.ToErrors();
+
+        return GeneralErrors.Failure(message).ToErrors();
+    }
 }
