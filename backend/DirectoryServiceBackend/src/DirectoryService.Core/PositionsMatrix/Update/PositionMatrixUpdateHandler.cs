@@ -190,10 +190,6 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
             if (resultPositions.IsFailure)
             {
                 _logger.LogError("Error _positionMatrixRepository.UpdateAsync");
-                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
-                if (rollbackResult.IsFailure)
-                    return rollbackResult.Error.ToErrors();
-
                 return resultPositions.Error.ToErrors();
             }
             result = resultPositions.Value;
@@ -214,10 +210,6 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
                 if(resultChildUpdate.IsFailure)
                 {
                     _logger.LogError("Error _positionMatrixRepository.UpdateAsync");
-                    var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
-                    if (rollbackResult.IsFailure)
-                        return rollbackResult.Error.ToErrors();
-
                     return resultChildUpdate.Error;
                 }
             }
