@@ -15,7 +15,6 @@ namespace DirectoryService.Core.PositionsMatrix.Update;
 public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixUpdateCommand>
 {
     private readonly IPositionMatrixRepository _positionMatrixRepository;
-    private readonly IPositionMatrixService _positionMatrixService;
     private readonly UpdatePositionMatrixValidator _updateValidator;
     private readonly ITransactionManager _transactionManager;
     private readonly ILogger<PositionMatrixUpdateHandler> _logger;
@@ -23,14 +22,12 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
 
     public PositionMatrixUpdateHandler(
         IPositionMatrixRepository positionMatrixRepository,
-        IPositionMatrixService positionMatrixService,
         UpdatePositionMatrixValidator updateValidator,
         ITransactionManager transactionManager,
         ILogger<PositionMatrixUpdateHandler> logger,
         IStatisticsService stats)
     {
         _positionMatrixRepository = positionMatrixRepository;
-        _positionMatrixService = positionMatrixService;
         _updateValidator = updateValidator;
         _transactionManager = transactionManager;
         _logger = logger;
@@ -65,6 +62,12 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
         Slug? newSlug = null;
         PathSlug? newPathSlug = null;
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         if (positionDto != null)
         {
             //валидация входящих параметров
@@ -93,6 +96,7 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
                     return GeneralErrors.AlreadyExist().ToErrors();
                 }
             }
+
             if (positionDto.NewName != null && !positionMatrix.Name.Value.Equals(positionDto.NewName, StringComparison.Ordinal))
             {
                 var resultNewName = PositionName.Create(positionDto.NewName);
@@ -129,7 +133,7 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
                 if (resultPosition.IsFailure)
                 {
                     _logger.LogError("Error _positionMatrixRepository.GetByIdAsync");
-                    return GeneralErrors.Failure("ошибка поиска родительской должности").ToErrors();
+                    return resultPosition.Error.ToErrors();
                 }
                 if (resultPosition.Value != null)
                 {
@@ -151,18 +155,12 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
         if (resultChilds.IsFailure)
         {
             _logger.LogError("Error _positionMatrixRepository.GetByParentIdAsync");
-            return GeneralErrors.Failure("ошибка получения потомков").ToErrors();
+            return resultChilds.Error.ToErrors();
         }
         if (resultChilds.Value.Count > 0)
         {
             positionMatrix.AddChilds(resultChilds.Value);
         }
-
-        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        if (transactionScopeResult.IsFailure)
-            return transactionScopeResult.Error.ToErrors();
-
-        await using var transactionScope = transactionScopeResult.Value;
 
         if (positionMatrix.Update(newName, newSlug, newPathSlug))
         {

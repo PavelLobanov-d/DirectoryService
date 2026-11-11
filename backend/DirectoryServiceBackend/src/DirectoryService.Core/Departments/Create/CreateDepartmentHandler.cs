@@ -207,17 +207,17 @@ public class CreateDepartmentHandler : ICommandHandler<CreatedObjectGuid, Create
 
         var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         if (saveResult.IsFailure)
-            return saveResult.Error.ToErrors();
-
-        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
-        if (commitResult.IsFailure)
-            return commitResult.Error.ToErrors();
-        else
         {
             var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
             if (rollbackResult.IsFailure)
                 return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
         }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return new CreatedObjectGuid(resultAdd.Value);
     }
