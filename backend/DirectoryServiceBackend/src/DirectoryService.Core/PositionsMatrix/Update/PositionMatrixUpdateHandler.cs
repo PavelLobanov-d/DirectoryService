@@ -49,7 +49,35 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
             return GeneralErrors.NotFound(command.PositionMatrixId).ToErrors();
         }
         PositionMatrix position = resultPositionMatrix.Value;
-        return await UpdateAsync(position, command.PositionDto, cancellationToken).ConfigureAwait(false);
+
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
+        var result = await UpdateAsync(position, command.PositionDto, cancellationToken).ConfigureAwait(false);
+        if(result.IsFailure)
+        {
+            _logger.LogError("Error UpdateAsync: {Message} ", result.Error.FirstOrDefault<Error>()?.Message);
+            return result.Error;
+        }
+
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
+
+        return result;
     }
 
     private async Task<Result<bool, Errors>> UpdateAsync(
@@ -61,12 +89,6 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
         PositionName? newName = null;
         Slug? newSlug = null;
         PathSlug? newPathSlug = null;
-
-        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        if (transactionScopeResult.IsFailure)
-            return transactionScopeResult.Error.ToErrors();
-
-        await using var transactionScope = transactionScopeResult.Value;
 
         if (positionDto != null)
         {
@@ -200,21 +222,6 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
                 }
             }
         }
-
-        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        if (saveResult.IsFailure)
-        {
-            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
-            if (rollbackResult.IsFailure)
-                return rollbackResult.Error.ToErrors();
-
-            return saveResult.Error.ToErrors();
-        }
-
-        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
-        if (commitResult.IsFailure)
-            return commitResult.Error.ToErrors();
-
         return true;
     }
 }
