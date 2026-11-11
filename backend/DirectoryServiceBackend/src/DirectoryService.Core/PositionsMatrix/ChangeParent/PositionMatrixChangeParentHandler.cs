@@ -1,10 +1,13 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
+using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
+using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Abstractions;
+using System.Transactions;
 
 namespace DirectoryService.Core.PositionsMatrix.ChangeParent;
 
@@ -12,17 +15,20 @@ public class PositionMatrixChangeParentHandler : ICommandHandler<bool, PositionM
 {
     private readonly IPositionMatrixRepository _positionMatrixRepository;
     private readonly IPositionMatrixService _positionMatrixService;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<PositionMatrixChangeParentHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public PositionMatrixChangeParentHandler(
         IPositionMatrixRepository positionMatrixRepository,
         IPositionMatrixService positionMatrixService,
+        ITransactionManager transactionManager,
         ILogger<PositionMatrixChangeParentHandler> logger,
         IStatisticsService stats)
     {
         _positionMatrixRepository = positionMatrixRepository;
         _positionMatrixService = positionMatrixService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
         _positionMatrixRepository = positionMatrixRepository;
@@ -94,28 +100,14 @@ public class PositionMatrixChangeParentHandler : ICommandHandler<bool, PositionM
             return GeneralErrors.AlreadyExist().ToErrors();
         }
 
-        if (position.ParentId != null)
-        {
-            await _stats.CreateAsync(
-                position.Id.Value,
-                typeof(PositionMatrix).Name,
-                Statistica.Level.FINE,
-                Statistica.Action.DETACH,
-                $"Отсоединён от {position.PathSlug}",
-                position.ParentId.Value,
-                typeof(PositionMatrix).Name,
-                cancellationToken).ConfigureAwait(false);
-        }
+        var storePositionPathSlug = position.PathSlug;
+        var storePositionParentId = position.ParentId?.Value;
 
-        await _stats.CreateAsync(
-            position.Id.Value,
-            typeof(PositionMatrix).Name,
-            Statistica.Level.FINE,
-            Statistica.Action.ATTACH,
-            $"Присоединён к {positionParent.PathSlugFull}",
-            positionParent.Id.Value,
-            typeof(PositionMatrix).Name,
-            cancellationToken).ConfigureAwait(false);
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
 
         if (position.Move(positionParent))
         {
@@ -123,17 +115,57 @@ public class PositionMatrixChangeParentHandler : ICommandHandler<bool, PositionM
             if (resultUpdateRepos.IsFailure)
             {
                 _logger.LogError("Error _positionMatrixRepository.UpdateAsync");
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
                 return resultUpdateRepos.Error.ToErrors();
             }
             var resultUpdate = await _positionMatrixService.UpdateAsync(position, positionDto: null, cancellationToken).ConfigureAwait(false);
             if (resultUpdate.IsFailure)
             {
                 _logger.LogError("Error PositionMatrixService.UpdateAsync");
-                return GeneralErrors.Failure("ошибка обновления должности").ToErrors();
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
+                return resultUpdate.Error;
             }
-            var resultSave = await _positionMatrixService.SaveAsync(cancellationToken).ConfigureAwait(false);
-            if (resultSave.IsFailure)
-                return resultSave.Error.ToErrors();
+
+            if (storePositionParentId != null)
+                await _stats.CreateAsync(
+                    position.Id.Value,
+                    typeof(PositionMatrix).Name,
+                    Statistica.Level.FINE,
+                    Statistica.Action.DETACH,
+                    $"Отсоединён от {storePositionPathSlug}",
+                    storePositionParentId,
+                    typeof(PositionMatrix).Name,
+                    cancellationToken).ConfigureAwait(false);
+
+            await _stats.CreateAsync(
+                position.Id.Value,
+                typeof(PositionMatrix).Name,
+                Statistica.Level.FINE,
+                Statistica.Action.ATTACH,
+                $"Присоединён к {positionParent.PathSlugFull}",
+                positionParent.Id.Value,
+                typeof(PositionMatrix).Name,
+                cancellationToken).ConfigureAwait(false);
+
+            var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (saveResult.IsFailure)
+            {
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
+                return saveResult.Error.ToErrors();
+            }
+
+            var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+            if (commitResult.IsFailure)
+                return commitResult.Error.ToErrors();
 
             return resultUpdate.Value;
         }

@@ -1,30 +1,32 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace DirectoryService.Core.Locations.Update;
 
 public class LocationUpdateHandler : ICommandHandler<bool, LocationUpdateCommand>
 {
     private readonly ILocationsRepository _locationsRepository;
-    private readonly ILocationsService _locationsService;
     private readonly UpdateLocationValidator _updateValidator;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<LocationUpdateHandler> _logger;
     private readonly IStatisticsService _stats;
     public LocationUpdateHandler(
         ILocationsRepository locationsRepository,
-        ILocationsService locationsService,
         UpdateLocationValidator updateValidator,
+        ITransactionManager transactionManager,
         ILogger<LocationUpdateHandler> logger,
         IStatisticsService stats)
     {
         _locationsRepository = locationsRepository;
-        _locationsService = locationsService;
         _updateValidator = updateValidator;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -80,6 +82,12 @@ public class LocationUpdateHandler : ICommandHandler<bool, LocationUpdateCommand
                     address = resultAddress.Value;
             }
 
+            var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            if (transactionScopeResult.IsFailure)
+                return transactionScopeResult.Error.ToErrors();
+
+            await using var transactionScope = transactionScopeResult.Value;
+
             if (!location.Update(name, address))
             {
                 _logger.LogInformation("обновление не требуется");
@@ -90,6 +98,10 @@ public class LocationUpdateHandler : ICommandHandler<bool, LocationUpdateCommand
             if (locationUpdate.IsFailure)
             {
                 _logger.LogError("Error updating record of Location");
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
                 return locationUpdate.Error.ToErrors();
             }
 
@@ -118,9 +130,19 @@ public class LocationUpdateHandler : ICommandHandler<bool, LocationUpdateCommand
                 _logger.LogInformation("Change address of location {1} : {2}", location.Id.Value, location.Address.Value);
             }
 
-            var resultSave = await _locationsService.SaveAsync(cancellationToken).ConfigureAwait(false);
-            if (resultSave.IsFailure)
-                return resultSave.Error.ToErrors();
+            var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (saveResult.IsFailure)
+            {
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
+                return saveResult.Error.ToErrors();
+            }
+
+            var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+            if (commitResult.IsFailure)
+                return commitResult.Error.ToErrors();
 
             return true;
         }

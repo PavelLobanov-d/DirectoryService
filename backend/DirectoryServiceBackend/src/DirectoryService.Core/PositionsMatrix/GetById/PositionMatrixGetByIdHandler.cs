@@ -8,23 +8,23 @@ namespace DirectoryService.Core.PositionsMatrix.GetById;
 
 public class PositionMatrixGetByIdHandler : ICommandHandler<PositionMatrix?, PositionMatrixGetByIdCommand>
 {
-    private readonly IPositionMatrixRepository _positionMatrixRepository;
+    private readonly IPositionMatrixService _positionMatrixService;
     private readonly ILogger<PositionMatrixGetByIdHandler> _logger;
     public PositionMatrixGetByIdHandler(
-        IPositionMatrixRepository positionMatrixRepository,
+        IPositionMatrixService positionMatrixService,
         ILogger<PositionMatrixGetByIdHandler> logger)
     {
-        _positionMatrixRepository = positionMatrixRepository;
+        _positionMatrixService = positionMatrixService;
         _logger = logger;
     }
     public async Task<Result<PositionMatrix?, Errors>> ExecuteAsync(PositionMatrixGetByIdCommand command, CancellationToken cancellationToken = default)
     {
-        var resultPosition = await _positionMatrixRepository.GetByIdAsync(command.PositionMatrixId, cancellationToken).ConfigureAwait(false);
+        var resultPosition = await _positionMatrixService.GetByIdAsync(command.PositionMatrixId, cancellationToken).ConfigureAwait(false);
         if (resultPosition.IsFailure)
-        {
-            _logger.LogError("Error _positionMatrixRepository.GetByIdAsync");
-            return GeneralErrors.Failure("ошибка запроса поиска должностей").ToErrors();
-        }
+            return resultPosition.Error.ToErrors();
+        if(resultPosition.Value == null)
+            return GeneralErrors.NotFound(command.PositionMatrixId).ToErrors();
+
         return resultPosition.Value;
     }
 }

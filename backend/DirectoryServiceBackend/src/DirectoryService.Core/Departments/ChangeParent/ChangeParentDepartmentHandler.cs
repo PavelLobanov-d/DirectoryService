@@ -1,9 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
-using DirectoryService.Core.Departments.ChangeChiefPositionMatrix;
-using DirectoryService.Core.Departments.Update;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
-using DirectoryService.Core.Validation;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
@@ -14,18 +12,20 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
 {
     private readonly IDepartmentsRepository _departmentRepository;
     private readonly IDepartmentsService _departmentService;
-
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<ChangeParentDepartmentHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public ChangeParentDepartmentHandler(
         IDepartmentsRepository departmentRepository,
         IDepartmentsService departmentService,
+        ITransactionManager transactionManager,
         ILogger<ChangeParentDepartmentHandler> logger,
         IStatisticsService stats)
     {
         _departmentService = departmentService;
         _departmentRepository = departmentRepository;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -34,6 +34,11 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
     ChangeParentDepartmentCommand command,
     CancellationToken cancellationToken = default)
     {
+        if (command.DepartmentId == command.NewParentDepartmentId)
+        {
+            return GeneralErrors.Conflict("parent.himself", "Попытка подчинить самому себе").ToErrors();
+        }
+
         //поиск изменяемого департамента
         var resultDepartment = await _departmentRepository.GetByIdAsync(command.DepartmentId, cancellationToken).ConfigureAwait(false);
         if (resultDepartment.IsFailure)
@@ -63,16 +68,16 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
         if (department.ParentId == departmentParent.Id)
             return false;
 
-        if (department.Id == departmentParent.Id)
-        {
-            return GeneralErrors.Conflict("parent.himself", "Попытка подчинить самому себе").ToErrors();
-        }
-
         //проверка на зацикливание
-        var resultFind = await findChildByIdAsync(department, departmentParent.Id, cancellationToken).ConfigureAwait(false);
-        if (resultFind.IsSuccess && resultFind.Value != null)
+        var resultFind = await _departmentService.FindChildByIdAsync(department, departmentParent.Id, cancellationToken).ConfigureAwait(false);
+        if (resultFind.IsFailure)
         {
-            return GeneralErrors.Conflict("hierarchy.cicling", "зацикливание иерархии департаментов").ToErrors();
+            _logger.LogError("Request error");
+            return resultFind.Error;
+        }
+        if (resultFind.Value != null)
+        {
+            return GeneralErrors.Conflict("hierarchy.cycling", "зацикливание иерархии департаментов").ToErrors();
         }
 
         //проверка на уникальность Slug у родителя
@@ -93,69 +98,68 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
             return GeneralErrors.AlreadyExist().ToErrors();
         }
 
-        await _stats.CreateAsync(
-            department.Id.Value,
-            typeof(Department).Name,
-            Statistica.Level.FINE,
-            Statistica.Action.DETACH,
-            $"Отсоединён от {department.PathSlug}",
-            department.ParentId?.Value,
-            typeof(Department).Name,
-            cancellationToken).ConfigureAwait(false);
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
 
-        await _stats.CreateAsync(
-            department.Id.Value,
-            typeof(Department).Name,
-            Statistica.Level.FINE,
-            Statistica.Action.ATTACH,
-            $"Присоединён к {departmentParent.PathSlugFull}",
-            departmentParent.Id.Value,
-            typeof(Department).Name,
-            cancellationToken).ConfigureAwait(false);
+        await using var transactionScope = transactionScopeResult.Value;
+
+        var storeDepartmentPathSlug = department.PathSlug;
+        var storeDepartmentParentId = department.ParentId?.Value ;
 
         if (department.Move(departmentParent))
         {
             Result<bool, Errors> resultUpdate = await _departmentService.UpdateAsync(
                 department.Id.Value,
-                departmentDto : null,
+                departmentDto: null,
                 cancellationToken).ConfigureAwait(false);
             if (resultUpdate.IsFailure)
                 return resultUpdate.Error;
 
-            var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-            if (resultSave.IsFailure)
-                return resultSave.Error.ToErrors();
+            if (storeDepartmentParentId != null)
+                await _stats.CreateAsync(
+                    department.Id.Value,
+                    typeof(Department).Name,
+                    Statistica.Level.FINE,
+                    Statistica.Action.DETACH,
+                    $"Отсоединён от {storeDepartmentPathSlug}",
+                    storeDepartmentParentId,
+                    typeof(Department).Name,
+                    cancellationToken).ConfigureAwait(false);
+
+            await _stats.CreateAsync(
+                department.Id.Value,
+                typeof(Department).Name,
+                Statistica.Level.FINE,
+                Statistica.Action.ATTACH,
+                $"Присоединён к {departmentParent.PathSlugFull}",
+                departmentParent.Id.Value,
+                typeof(Department).Name,
+                cancellationToken).ConfigureAwait(false);
+
+            var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (saveResult.IsFailure)
+            {
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
+                return saveResult.Error.ToErrors();
+            }
+
+            var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+            if (commitResult.IsFailure)
+                return commitResult.Error.ToErrors();
+
             return true;
         }
-        return false;
-    }
-    private async Task<Result<Department?, Errors>> findChildByIdAsync(
-    Department department,
-    DepartmentId findDepartmentId,
-    CancellationToken cancellationToken = default)
-    {
-        Department? childFinded = null;
-        var resultChilds = await _departmentRepository.GetByParentIdAsync(department.Id.Value, cancellationToken).ConfigureAwait(false);
-        if (resultChilds.IsSuccess)
+        else
         {
-            foreach (Department child in resultChilds.Value)
-            {
-                if (child.Id == findDepartmentId)
-                {
-                    childFinded = child;
-                    break;
-                }
-                else
-                {
-                    var resultFind = await findChildByIdAsync(child, findDepartmentId, cancellationToken).ConfigureAwait(false);
-                    if (resultFind.IsSuccess && resultFind.Value != null)
-                    {
-                        childFinded = resultFind.Value;
-                        break;
-                    }
-                }
-            }
-        }
-        return childFinded;
-    }
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return false;
+        }        
+    }    
 }

@@ -1,5 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Core.Departments.DetachLocation;
 using DirectoryService.Core.Statistics;
@@ -9,24 +10,25 @@ using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace DirectoryService.Core.Departments.DetachPosition;
 
 public class DepartmentDetachPositionHandler : ICommandHandler<bool, DepartmentDetachPositionCommand>
 {
     private readonly IDepartmentPositionsRepository _departmentPositionsRepository;
-    private readonly IDepartmentsService _departmentService;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<DepartmentsService> _logger;
     private readonly IStatisticsService _stats;
 
     public DepartmentDetachPositionHandler(
         IDepartmentPositionsRepository departmentPositionsRepository,
-        IDepartmentsService departmentService,
+        ITransactionManager transactionManager,
         ILogger<DepartmentsService> logger,
         IStatisticsService stats)
     {
         _departmentPositionsRepository = departmentPositionsRepository;
-        _departmentService = departmentService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -47,10 +49,20 @@ public class DepartmentDetachPositionHandler : ICommandHandler<bool, DepartmentD
         }
         DepartmentPosition dp = resultLink.Value;
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         var resultDelete = await _departmentPositionsRepository.DeleteAsync(dp, cancellationToken).ConfigureAwait(false);
         if (resultDelete.IsFailure)
         {
             _logger.LogError("Error _departmentPositionsRepository.DeleteAsync");
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
             return GeneralErrors.Failure("ошибка удаления связи департамент-должность").ToErrors();
         }
         if (resultDelete.Value)
@@ -65,9 +77,19 @@ public class DepartmentDetachPositionHandler : ICommandHandler<bool, DepartmentD
             typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
         }
-        var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return resultDelete.Value;
     }

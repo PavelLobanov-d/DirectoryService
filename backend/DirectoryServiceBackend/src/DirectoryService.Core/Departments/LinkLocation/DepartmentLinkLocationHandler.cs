@@ -1,7 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentLocations;
-using DirectoryService.Core.Departments.GetByParentId;
 using DirectoryService.Core.Locations;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentLocations;
@@ -11,31 +11,31 @@ using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace DirectoryService.Core.Departments.LinkLocation;
 
 public class DepartmentLinkLocationHandler : ICommandHandler<CreatedObjectGuid, DepartmentLinkLocationCommand>
 {
     private readonly IDepartmentsRepository _departmentRepository;
-    private readonly IDepartmentsService _departmentService;
     private readonly ILocationsService _locationsService;
     private readonly IDepartmentLocationsRepository _departmentLocationsRepository;
-
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<DepartmentLinkLocationHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public DepartmentLinkLocationHandler(
         IDepartmentsRepository departmentRepository,
-        IDepartmentsService departmentService,
         ILocationsService locationsService,
         IDepartmentLocationsRepository departmentLocationsRepository,
+        ITransactionManager transactionManager,
         ILogger<DepartmentLinkLocationHandler> logger,
         IStatisticsService stats)
     {
         _departmentRepository = departmentRepository;
-        _departmentService = departmentService;
         _locationsService = locationsService;
         _departmentLocationsRepository = departmentLocationsRepository;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -79,6 +79,12 @@ public class DepartmentLinkLocationHandler : ICommandHandler<CreatedObjectGuid, 
             return GeneralErrors.AlreadyExist().ToErrors();
         }
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         DepartmentLocation link;
         try
         {
@@ -86,6 +92,10 @@ public class DepartmentLinkLocationHandler : ICommandHandler<CreatedObjectGuid, 
         }
         catch (DSException ex)
         {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
             return GeneralErrors.OtherError(ex.Message).ToErrors();
         }
 
@@ -99,9 +109,19 @@ public class DepartmentLinkLocationHandler : ICommandHandler<CreatedObjectGuid, 
             department.GetType().Name,
             cancellationToken).ConfigureAwait(false);
 
-        var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return new CreatedObjectGuid(link.Id.Value);
     }

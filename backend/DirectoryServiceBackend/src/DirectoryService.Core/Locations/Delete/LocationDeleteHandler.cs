@@ -1,10 +1,12 @@
 ﻿using CSharpFunctionalExtensions;
+using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Abstractions;
+using System.Transactions;
 
 
 namespace DirectoryService.Core.Locations.Delete;
@@ -12,28 +14,38 @@ namespace DirectoryService.Core.Locations.Delete;
 public class LocationDeleteHandler : ICommandHandler<bool, LocationDeleteCommand>
 {
     private readonly ILocationsRepository _locationsRepository;
-    private readonly ILocationsService _locationsService;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<LocationDeleteHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public LocationDeleteHandler(
         ILocationsRepository locationsRepository,
-        ILocationsService locationsService,
+        ITransactionManager transactionManager,
         ILogger<LocationDeleteHandler> logger,
         IStatisticsService stats)
     {
         _locationsRepository = locationsRepository;
-        _locationsService = locationsService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
     public async Task<Result<bool, Errors>> ExecuteAsync(LocationDeleteCommand command, CancellationToken cancellationToken)
     {
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         var result = await _locationsRepository.DeleteAsync(command.LocationId, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
         {
             _logger.LogError("Error deleting record of Location");
-            return GeneralErrors.Failure("ошибка удаления локации").ToErrors();
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return result.Error.ToErrors();
         }
         if (result.Value)
             await _stats.CreateAsync(
@@ -46,9 +58,19 @@ public class LocationDeleteHandler : ICommandHandler<bool, LocationDeleteCommand
 
         _logger.LogInformation("Deleting of location {1}", command.LocationId);
 
-        var resultSave = await _locationsService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return true;
     }

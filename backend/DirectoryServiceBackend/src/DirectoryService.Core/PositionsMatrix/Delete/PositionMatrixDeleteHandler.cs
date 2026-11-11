@@ -1,28 +1,30 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
+using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Abstractions;
+using System.Transactions;
 
 namespace DirectoryService.Core.PositionsMatrix.Delete;
 
 public class PositionMatrixDeleteHandler : ICommandHandler<bool, PositionMatrixDeleteCommand>
 {
     private readonly IPositionMatrixRepository _positionMatrixRepository;
-    private readonly IPositionMatrixService _positionMatrixService;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<PositionMatrixDeleteHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public PositionMatrixDeleteHandler(
         IPositionMatrixRepository positionMatrixRepository,
-        IPositionMatrixService positionMatrixService,
+        ITransactionManager transactionManager,
         ILogger<PositionMatrixDeleteHandler> logger,
         IStatisticsService stats)
     {
         _positionMatrixRepository = positionMatrixRepository;
-        _positionMatrixService = positionMatrixService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -57,11 +59,21 @@ public class PositionMatrixDeleteHandler : ICommandHandler<bool, PositionMatrixD
             return Error.Conflict("rules.failure", "есть зависимые должности. Удаление запрещено").ToErrors();
         }
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         var result = await _positionMatrixRepository.DeleteAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
         {
             _logger.LogError("Error _positionMatrixRepository.DeleteAsync");
-            return GeneralErrors.Failure("ошибка удаления должности").ToErrors();
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return result.Error.ToErrors();
         }
         if (result.Value)
         {
@@ -78,9 +90,19 @@ public class PositionMatrixDeleteHandler : ICommandHandler<bool, PositionMatrixD
         }
         if (result.IsSuccess)
         {
-            var resultSave = await _positionMatrixService.SaveAsync(cancellationToken).ConfigureAwait(false);
-            if (resultSave.IsFailure)
-                return resultSave.Error.ToErrors();
+            var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (saveResult.IsFailure)
+            {
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
+                return saveResult.Error.ToErrors();
+            }
+
+            var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+            if (commitResult.IsFailure)
+                return commitResult.Error.ToErrors();
         }
         return true;
     }

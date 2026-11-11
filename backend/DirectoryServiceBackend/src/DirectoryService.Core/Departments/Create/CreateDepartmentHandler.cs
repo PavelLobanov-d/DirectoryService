@@ -1,9 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
-using DirectoryService.Core.DepartmentLocations;
-using DirectoryService.Core.DepartmentPositions;
-using DirectoryService.Core.Departments.ChangeParent;
 using DirectoryService.Core.Locations;
 using DirectoryService.Core.PositionsMatrix;
 using DirectoryService.Core.Statistics;
@@ -20,29 +18,29 @@ namespace DirectoryService.Core.Departments.Create;
 public class CreateDepartmentHandler : ICommandHandler<CreatedObjectGuid, CreateDepartmentCommand>
 {
     private readonly IDepartmentsRepository _departmentRepository;
-    private readonly IDepartmentsService _departmentService;
     private readonly IPositionMatrixService _positionMatrixService;
     private readonly ILocationsService _locationsService;
     private readonly IDepartmentsChiefPositionRepository _departmentChiefPositionsRepository;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<CreateDepartmentHandler> _logger;
     private readonly IStatisticsService _stats;
     private readonly CreateDepartmentValidator _validator;
 
     public CreateDepartmentHandler(
         IDepartmentsRepository departmentRepository,
-        IDepartmentsService departmentService,
         IPositionMatrixService positionMatrixService,
         ILocationsService locationsService,
         IDepartmentsChiefPositionRepository departmentChiefPositionsRepository,
+        ITransactionManager transactionManager,
         ILogger<CreateDepartmentHandler> logger,
         IStatisticsService stats,
         CreateDepartmentValidator validator)
     {
         _departmentChiefPositionsRepository = departmentChiefPositionsRepository;
-        _departmentService = departmentService;
         _departmentRepository = departmentRepository;
         _positionMatrixService = positionMatrixService;
         _locationsService = locationsService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
         _validator = validator;
@@ -177,11 +175,22 @@ public class CreateDepartmentHandler : ICommandHandler<CreatedObjectGuid, Create
             department.LinkLocations(resultLocations.Value);
         }
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
+
         var resultAdd = await _departmentRepository.AddAsync(department, cancellationToken).ConfigureAwait(false);
         if (resultAdd.IsFailure)
         {
             _logger.LogError("Error creating record of Department");
-            return GeneralErrors.Failure("ошибка добавления департамента").ToErrors();
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return resultAdd.Error.ToErrors();
         }
 
         _logger.LogInformation("Department created with Id {DepartmentId}", resultAdd.Value);
@@ -196,11 +205,20 @@ public class CreateDepartmentHandler : ICommandHandler<CreatedObjectGuid, Create
             parent == null ? null : typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
 
-        var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return new CreatedObjectGuid(resultAdd.Value);
     }
-
 }

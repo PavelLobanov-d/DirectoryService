@@ -316,17 +316,6 @@ public class DepartmentsService : IDepartmentsService
         return resultPositions.Value;
     }
 
-    public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default)
-    {
-        var result = await _departmentRepository.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (result.IsFailure)
-        {
-            _logger.LogError("Error _departmentRepository.SaveAsync");
-            return GeneralErrors.Failure("ошибка сохранения Department");
-        }
-        return result;
-    }
-
     public async Task<Result<bool, Errors>> UpdateAsync(
     Guid departmentId,
     UpdateDepartmentDto? departmentDto,
@@ -530,7 +519,7 @@ public class DepartmentsService : IDepartmentsService
         }
 
         //проверка на зацикливание
-        var resultFind = await findChildByIdAsync(department, departmentParent.Id, cancellationToken).ConfigureAwait(false);
+        var resultFind = await FindChildByIdAsync(department, departmentParent.Id, cancellationToken).ConfigureAwait(false);
         if (resultFind.IsSuccess && resultFind.Value != null)
         {
             return GeneralErrors.Conflict("hierarchy.cicling", "зацикливание иерархии департаментов").ToErrors();
@@ -726,7 +715,7 @@ public class DepartmentsService : IDepartmentsService
 
         return true;
     }
-    private async Task<Result<Department?, Errors>> findChildByIdAsync(
+    public async Task<Result<Department?, Errors>> FindChildByIdAsync(
         Department department,
         DepartmentId findDepartmentId,
         CancellationToken cancellationToken = default)
@@ -744,7 +733,7 @@ public class DepartmentsService : IDepartmentsService
                 }
                 else
                 {
-                    var resultFind = await findChildByIdAsync(child, findDepartmentId, cancellationToken).ConfigureAwait(false);
+                    var resultFind = await FindChildByIdAsync(child, findDepartmentId, cancellationToken).ConfigureAwait(false);
                     if (resultFind.IsSuccess && resultFind.Value != null)
                     {
                         childFinded = resultFind.Value;
@@ -1015,5 +1004,10 @@ public class DepartmentsService : IDepartmentsService
                 return resultSave.Error;
         }
         return resultDelete.Value;
+    }
+    private async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken)
+    {
+        var result = await _departmentRepository.SaveAsync(cancellationToken).ConfigureAwait(false);
+        return result;
     }
 }

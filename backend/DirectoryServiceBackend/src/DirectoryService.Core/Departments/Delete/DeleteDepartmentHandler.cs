@@ -1,27 +1,29 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace DirectoryService.Core.Departments.Delete;
 public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCommand>
 {
     private readonly IDepartmentsRepository _departmentRepository;
-    private readonly IDepartmentsService _departmentService;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<DeleteDepartmentHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public DeleteDepartmentHandler(
         IDepartmentsRepository departmentRepository,
-        IDepartmentsService departmentService,
+        ITransactionManager transactionManager,
         ILogger<DeleteDepartmentHandler> logger,
         IStatisticsService stats)
     {
         _departmentRepository = departmentRepository;
-        _departmentService = departmentService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -45,26 +47,38 @@ public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCom
 
     private async Task<Result<bool, Errors>> DeleteAsync(Department department, CancellationToken cancellationToken = default)
     {
-        //проверка на существование потомков
-        var resultHasExists = await _departmentRepository.GetByParentIdAsync(department.Id.Value, cancellationToken).ConfigureAwait(false);
-        if (resultHasExists.IsFailure)
+        // Проверка на существование потомков
+        var childrenResult = await _departmentRepository.GetByParentIdAsync(department.Id.Value, cancellationToken).ConfigureAwait(false);
+        if (childrenResult.IsFailure)
         {
-            _logger.LogError("Error _departmentRepository.GetByParentIdAsync");
+            _logger.LogError("Error _departmentRepository.GetByParentIdAsync for {DepartmentId}", department.Id);
             return GeneralErrors.Failure("ошибка запроса").ToErrors();
         }
-        if (resultHasExists.Value.Count > 0)
+
+        if (childrenResult.Value.Count > 0)
         {
-            _logger.LogError("Has childs for {DepartmentId}", department.Id);
+            _logger.LogWarning("Department {DepartmentId} has child departments. Deletion denied", department.Id);
             return Error.Conflict("rules.failure", "есть зависимые департаменты. Удаление запрещено").ToErrors();
         }
 
-        var result = await _departmentRepository.DeleteAsync(department, cancellationToken).ConfigureAwait(false);
-        if (result.IsFailure)
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
+        var deleteResult = await _departmentRepository.DeleteAsync(department, cancellationToken).ConfigureAwait(false);
+        if (deleteResult.IsFailure)
         {
-            _logger.LogError("Error _departmentRepository.DeleteAsync");
-            return GeneralErrors.Failure("ошибка удаления должности").ToErrors();
+            _logger.LogError("Error _departmentRepository.DeleteAsync for {DepartmentId}", department.Id);
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return GeneralErrors.Failure("ошибка удаления департамента").ToErrors();
         }
-        if (result.Value)
+
+        if (deleteResult.Value)
         {
             await _stats.CreateAsync(
                 department.Id.Value,
@@ -75,14 +89,25 @@ public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCom
                 department.ParentId?.Value,
                 department.ParentId != null ? typeof(Department).Name : null,
                 cancellationToken).ConfigureAwait(false);
+
             _logger.LogInformation("Deleting of Department {DepartmentId}", department.Id);
         }
-        if (result.IsSuccess)
+
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
         {
-            var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-            if (resultSave.IsFailure)
-                return resultSave.Error.ToErrors();
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
         }
-        return result.Value;
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
+
+        return deleteResult.Value;
     }
+
 }

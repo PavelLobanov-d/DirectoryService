@@ -1,5 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentLocations;
 using DirectoryService.Core.Departments.Delete;
 using DirectoryService.Core.Locations;
@@ -10,13 +11,14 @@ using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace DirectoryService.Core.Departments.DetachLocation;
 
 public class DepartmentDetachLocationHandler : ICommandHandler<bool, DepartmentDetachLocationCommand>
 {
     private readonly IDepartmentLocationsRepository _departmentLocationsRepository;
-    private readonly IDepartmentsService _departmentService;
+    private readonly ITransactionManager _transactionManager;
     private readonly IDepartmentsRepository _departmentRepository;
     private readonly ILocationsService _locationsService;
     private readonly ILogger<DepartmentDetachLocationHandler> _logger;
@@ -24,16 +26,16 @@ public class DepartmentDetachLocationHandler : ICommandHandler<bool, DepartmentD
 
     public DepartmentDetachLocationHandler(
         IDepartmentLocationsRepository departmentLocationsRepository,
-        IDepartmentsService departmentService,
         IDepartmentsRepository departmentRepository,
         ILocationsService locationsService,
+        ITransactionManager transactionManager,
         ILogger<DepartmentDetachLocationHandler> logger,
         IStatisticsService stats)
     {
         _departmentLocationsRepository = departmentLocationsRepository;
-        _departmentService = departmentService;
         _departmentRepository = departmentRepository;
         _locationsService = locationsService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -77,12 +79,22 @@ public class DepartmentDetachLocationHandler : ICommandHandler<bool, DepartmentD
         Department department = link.Department;
         Location location = link.Location;
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         department.DetachLocation(location);
 
         var resultDelete = await _departmentLocationsRepository.DeleteAsync(link, cancellationToken).ConfigureAwait(false);
         if (resultDelete.IsFailure)
         {
             _logger.LogError("Error _departmentLocationsRepository.DeleteAsync");
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
             return GeneralErrors.Failure("ошибка удаления связи департамент-локация").ToErrors();
         }
         if (resultDelete.Value)
@@ -99,10 +111,21 @@ public class DepartmentDetachLocationHandler : ICommandHandler<bool, DepartmentD
         }
         if (resultDelete.IsSuccess)
         {
-            var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-            if (resultSave.IsFailure)
-                return resultSave.Error.ToErrors();
+            var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (saveResult.IsFailure)
+            {
+                var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+                if (rollbackResult.IsFailure)
+                    return rollbackResult.Error.ToErrors();
+
+                return saveResult.Error.ToErrors();
+            }
+
+            var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+            if (commitResult.IsFailure)
+                return commitResult.Error.ToErrors();
         }
+
         return resultDelete.Value;
     }
 }

@@ -1,33 +1,35 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
 using DirectoryService.Contracts.PositionsMatrix;
+using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Abstractions;
+using System.Transactions;
 
 namespace DirectoryService.Core.PositionsMatrix.Update;
 
 public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixUpdateCommand>
 {
     private readonly IPositionMatrixRepository _positionMatrixRepository;
-    private readonly IPositionMatrixService _positionMatrixService;
     private readonly UpdatePositionMatrixValidator _updateValidator;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<PositionMatrixUpdateHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public PositionMatrixUpdateHandler(
         IPositionMatrixRepository positionMatrixRepository,
-        IPositionMatrixService positionMatrixService,
         UpdatePositionMatrixValidator updateValidator,
+        ITransactionManager transactionManager,
         ILogger<PositionMatrixUpdateHandler> logger,
         IStatisticsService stats)
     {
         _positionMatrixRepository = positionMatrixRepository;
-        _positionMatrixService = positionMatrixService;
         _updateValidator = updateValidator;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -47,9 +49,38 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
             return GeneralErrors.NotFound(command.PositionMatrixId).ToErrors();
         }
         PositionMatrix position = resultPositionMatrix.Value;
-        return await UpdateAsync(position, command.PositionDto, cancellationToken).ConfigureAwait(false);
+
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
+        var result = await UpdateAsync(position, command.PositionDto, cancellationToken).ConfigureAwait(false);
+        if(result.IsFailure)
+        {
+            _logger.LogError("Error UpdateAsync: {Message} ", result.Error.FirstOrDefault<Error>()?.Message);
+            return result.Error;
+        }
+
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
+
+        return result;
     }
-    public async Task<Result<bool, Errors>> UpdateAsync(
+
+    private async Task<Result<bool, Errors>> UpdateAsync(
         PositionMatrix positionMatrix,
         UpdatePositionMatrixDto? positionDto,
         CancellationToken cancellationToken = default)
@@ -87,6 +118,7 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
                     return GeneralErrors.AlreadyExist().ToErrors();
                 }
             }
+
             if (positionDto.NewName != null && !positionMatrix.Name.Value.Equals(positionDto.NewName, StringComparison.Ordinal))
             {
                 var resultNewName = PositionName.Create(positionDto.NewName);
@@ -123,7 +155,7 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
                 if (resultPosition.IsFailure)
                 {
                     _logger.LogError("Error _positionMatrixRepository.GetByIdAsync");
-                    return GeneralErrors.Failure("ошибка поиска родительской должности").ToErrors();
+                    return resultPosition.Error.ToErrors();
                 }
                 if (resultPosition.Value != null)
                 {
@@ -145,7 +177,7 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
         if (resultChilds.IsFailure)
         {
             _logger.LogError("Error _positionMatrixRepository.GetByParentIdAsync");
-            return GeneralErrors.Failure("ошибка получения потомков").ToErrors();
+            return resultChilds.Error.ToErrors();
         }
         if (resultChilds.Value.Count > 0)
         {
@@ -158,7 +190,7 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
             if (resultPositions.IsFailure)
             {
                 _logger.LogError("Error _positionMatrixRepository.UpdateAsync");
-                return GeneralErrors.Failure("ошибка обновления должности").ToErrors();
+                return resultPositions.Error.ToErrors();
             }
             result = resultPositions.Value;
         }
@@ -174,14 +206,14 @@ public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixU
         {
             foreach (PositionMatrix child in positionMatrix.Childs)
             {
-                await UpdateAsync(child, positionDto: null, cancellationToken).ConfigureAwait(false);
+                var resultChildUpdate = await UpdateAsync(child, positionDto: null, cancellationToken).ConfigureAwait(false);
+                if(resultChildUpdate.IsFailure)
+                {
+                    _logger.LogError("Error _positionMatrixRepository.UpdateAsync");
+                    return resultChildUpdate.Error;
+                }
             }
         }
-
-        var resultSave = await _positionMatrixService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
-
         return true;
     }
 }

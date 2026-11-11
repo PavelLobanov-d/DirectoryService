@@ -1,5 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
+using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
 using DirectoryService.Core.Departments.LinkLocation;
 using DirectoryService.Core.PositionsMatrix;
@@ -12,30 +13,31 @@ using DirectoryService.Domain.shared;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using System.Transactions;
 
 namespace DirectoryService.Core.Departments.LinkPosition;
 
 public class DepartmentLinkPositionHandler : ICommandHandler<CreatedObjectGuid, DepartmentLinkPositionCommand>
 {
     private readonly IDepartmentsRepository _departmentRepository;
-    private readonly IDepartmentsService _departmentService;
     private readonly IPositionMatrixService _positionMatrixService;
     private readonly IDepartmentsChiefPositionRepository _departmentChiefPositionsRepository;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILogger<DepartmentLinkPositionHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public DepartmentLinkPositionHandler(
         IDepartmentsRepository departmentRepository,
-        IDepartmentsService departmentService,
         IPositionMatrixService positionMatrixService,
         IDepartmentsChiefPositionRepository departmentChiefPositionsRepository,
+        ITransactionManager transactionManager,
         ILogger<DepartmentLinkPositionHandler> logger,
         IStatisticsService stats)
     {
         _departmentChiefPositionsRepository = departmentChiefPositionsRepository;
         _departmentRepository = departmentRepository;
-        _departmentService = departmentService;
         _positionMatrixService = positionMatrixService;
+        _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
@@ -93,6 +95,12 @@ public class DepartmentLinkPositionHandler : ICommandHandler<CreatedObjectGuid, 
         if (resultChild.Value == null)
             return GeneralErrors.ValueIsInvalid("прикрепляемая должность должна быть зависима от должности начальника департамента").ToErrors();
 
+        var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        if (transactionScopeResult.IsFailure)
+            return transactionScopeResult.Error.ToErrors();
+
+        await using var transactionScope = transactionScopeResult.Value;
+
         DepartmentPosition link;
         try
         {
@@ -100,6 +108,10 @@ public class DepartmentLinkPositionHandler : ICommandHandler<CreatedObjectGuid, 
         }
         catch (DSException ex)
         {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
             return GeneralErrors.OtherError(ex.Message).ToErrors();
         }
 
@@ -113,9 +125,19 @@ public class DepartmentLinkPositionHandler : ICommandHandler<CreatedObjectGuid, 
             typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
 
-        var resultSave = await _departmentService.SaveAsync(cancellationToken).ConfigureAwait(false);
-        if (resultSave.IsFailure)
-            return resultSave.Error.ToErrors();
+        var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (saveResult.IsFailure)
+        {
+            var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
+            if (rollbackResult.IsFailure)
+                return rollbackResult.Error.ToErrors();
+
+            return saveResult.Error.ToErrors();
+        }
+
+        var commitResult = await transactionScope.CommitAsync(cancellationToken).ConfigureAwait(false);
+        if (commitResult.IsFailure)
+            return commitResult.Error.ToErrors();
 
         return new CreatedObjectGuid(link.Id.Value);
     }
