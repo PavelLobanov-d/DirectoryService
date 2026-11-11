@@ -2,7 +2,7 @@
 using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentPositions;
-using DirectoryService.Core.Departments.DetachLocation;
+using DirectoryService.Core.PositionsMatrix;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
@@ -10,44 +10,52 @@ using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
-using System.Transactions;
 
 namespace DirectoryService.Core.Departments.DetachPosition;
 
 public class DepartmentDetachPositionHandler : ICommandHandler<bool, DepartmentDetachPositionCommand>
 {
     private readonly IDepartmentPositionsRepository _departmentPositionsRepository;
+    private readonly IDepartmentsRepository _departmentRepository;
+    private readonly IPositionMatrixService _positionMatrixService;
     private readonly ITransactionManager _transactionManager;
-    private readonly ILogger<DepartmentsService> _logger;
+    private readonly ILogger<DepartmentDetachPositionHandler> _logger;
     private readonly IStatisticsService _stats;
 
     public DepartmentDetachPositionHandler(
         IDepartmentPositionsRepository departmentPositionsRepository,
+        IDepartmentsRepository departmentRepository,
+        IPositionMatrixService positionMatrixService,
         ITransactionManager transactionManager,
-        ILogger<DepartmentsService> logger,
+        ILogger<DepartmentDetachPositionHandler> logger,
         IStatisticsService stats)
     {
         _departmentPositionsRepository = departmentPositionsRepository;
+        _departmentRepository = departmentRepository;
+        _positionMatrixService = positionMatrixService;
         _transactionManager = transactionManager;
         _logger = logger;
         _stats = stats;
     }
+
     public async Task<Result<bool, Errors>> ExecuteAsync(
-    DepartmentDetachPositionCommand command,
-    CancellationToken cancellationToken = default)
+        DepartmentDetachPositionCommand command,
+        CancellationToken cancellationToken = default)
     {
-        //поиск линка
-        var resultLink = await _departmentPositionsRepository.GetByIdAsync(command.DepartmentPositionId, cancellationToken).ConfigureAwait(false);
+        var resultLink = await _departmentPositionsRepository
+            .GetByDepartmentAndPositionAsync(command.DepartmentId, command.PositionMatrixId, cancellationToken)
+            .ConfigureAwait(false);
         if (resultLink.IsFailure)
         {
-            _logger.LogError("Error _departmentPositionsRepository.GetByIdAsync");
-            return GeneralErrors.Failure("ошибка запроса поиска связи департамент-должность").ToErrors();
+            _logger.LogError("Error _departmentPositionsRepository.GetByDepartmentAndPositionAsync");
+            return GeneralErrors.Failure("ошибка запроса поиска связи подразделение-должность").ToErrors();
         }
-        if (resultLink.Value == null)
+
+        DepartmentPosition? link = resultLink.Value;
+        if (link == null)
         {
-            return GeneralErrors.NotFound(command.DepartmentPositionId, "DepartmentPosition").ToErrors();
+            return await BuildNotFoundErrorAsync(command, cancellationToken).ConfigureAwait(false);
         }
-        DepartmentPosition dp = resultLink.Value;
 
         var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         if (transactionScopeResult.IsFailure)
@@ -55,7 +63,7 @@ public class DepartmentDetachPositionHandler : ICommandHandler<bool, DepartmentD
 
         await using var transactionScope = transactionScopeResult.Value;
 
-        var resultDelete = await _departmentPositionsRepository.DeleteAsync(dp, cancellationToken).ConfigureAwait(false);
+        var resultDelete = await _departmentPositionsRepository.DeleteAsync(link, cancellationToken).ConfigureAwait(false);
         if (resultDelete.IsFailure)
         {
             _logger.LogError("Error _departmentPositionsRepository.DeleteAsync");
@@ -63,20 +71,22 @@ public class DepartmentDetachPositionHandler : ICommandHandler<bool, DepartmentD
             if (rollbackResult.IsFailure)
                 return rollbackResult.Error.ToErrors();
 
-            return GeneralErrors.Failure("ошибка удаления связи департамент-должность").ToErrors();
+            return GeneralErrors.Failure("ошибка удаления связи подразделение-должность").ToErrors();
         }
+
         if (resultDelete.Value)
         {
             await _stats.CreateAsync(
-            dp.PositionMatrixId.Value,
-            typeof(PositionMatrix).Name,
-            Statistica.Level.INFO,
-            Statistica.Action.DETACH,
-            $"Отсоединена должность {resultLink.Value.PositionMatrix.Name.Value}",
-            dp.DepartmentId.Value,
-            typeof(Department).Name,
-            cancellationToken).ConfigureAwait(false);
+                link.PositionMatrixId.Value,
+                typeof(PositionMatrix).Name,
+                Statistica.Level.INFO,
+                Statistica.Action.DETACH,
+                $"Отсоединена должность {link.PositionMatrix.Name.Value}",
+                link.DepartmentId.Value,
+                typeof(Department).Name,
+                cancellationToken).ConfigureAwait(false);
         }
+
         var saveResult = await _transactionManager.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         if (saveResult.IsFailure)
         {
@@ -91,6 +101,40 @@ public class DepartmentDetachPositionHandler : ICommandHandler<bool, DepartmentD
         if (commitResult.IsFailure)
             return commitResult.Error.ToErrors();
 
+        _logger.LogInformation(
+            "PositionMatrix {PositionMatrixId} detached from Department {DepartmentId}",
+            command.PositionMatrixId,
+            command.DepartmentId);
         return resultDelete.Value;
+    }
+
+    private async Task<Result<bool, Errors>> BuildNotFoundErrorAsync(
+        DepartmentDetachPositionCommand command,
+        CancellationToken cancellationToken)
+    {
+        var resultDepartment = await _departmentRepository.GetByIdAsync(command.DepartmentId, cancellationToken).ConfigureAwait(false);
+        if (resultDepartment.IsFailure)
+        {
+            _logger.LogError("Error _departmentRepository.GetByIdAsync");
+            return GeneralErrors.Failure("ошибка запроса поиска подразделения").ToErrors();
+        }
+        if (resultDepartment.Value == null)
+        {
+            return GeneralErrors.NotFound(command.DepartmentId, "Department").ToErrors();
+        }
+
+        var resultPosition = await _positionMatrixService.GetByIdAsync(command.PositionMatrixId, cancellationToken).ConfigureAwait(false);
+        if (resultPosition.IsFailure)
+        {
+            return resultPosition.Error.ToErrors();
+        }
+        if (resultPosition.Value == null)
+        {
+            return GeneralErrors.NotFound(command.PositionMatrixId, "Position").ToErrors();
+        }
+
+        return Error.NotFound(
+            "record.not.found",
+            $"связь подразделения {resultDepartment.Value.Name.Value} и должности {resultPosition.Value.Name.Value} не найдена").ToErrors();
     }
 }

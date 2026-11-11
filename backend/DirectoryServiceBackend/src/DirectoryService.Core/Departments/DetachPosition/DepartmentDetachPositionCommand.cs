@@ -2,4 +2,4 @@
 
 namespace DirectoryService.Core.Departments.DetachPosition;
 
-public record DepartmentDetachPositionCommand(Guid DepartmentPositionId): ICommand;
+public record DepartmentDetachPositionCommand(Guid DepartmentId, Guid PositionMatrixId) : ICommand;

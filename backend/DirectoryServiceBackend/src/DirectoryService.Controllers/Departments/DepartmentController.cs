@@ -21,7 +21,7 @@ namespace DirectoryService.Controllers.Departments;
 
 
 [ApiController]
-[Route("[controller]")]
+[Route("departments")]
 public class DepartmentController : ControllerBase
 {
     [HttpPost]
@@ -138,7 +138,7 @@ public class DepartmentController : ControllerBase
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
-    [HttpPatch("{departmentId:guid}/positions/{positionMatrixId:guid}")]
+    [HttpPost("{departmentId:guid}/positions/{positionMatrixId:guid}")]
     [ProducesResponseType<Envelope<CreatedObjectGuid>>(201)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
@@ -153,16 +153,17 @@ public class DepartmentController : ControllerBase
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
-    [HttpPatch("detachposition/{departmentPositionId:guid}")]
-    [ProducesResponseType<Envelope<List<Department>>>(200)]
+    [HttpDelete("{departmentId:guid}/positions/{positionMatrixId:guid}")]
+    [ProducesResponseType<Envelope<bool>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
     public async Task<EndPointResult<bool>> DetachPosition(
         [FromServices] ICommandHandler<bool, DepartmentDetachPositionCommand> handler,
-        [FromRoute] Guid departmentPositionId,
+        [FromRoute] Guid departmentId,
+        [FromRoute] Guid positionMatrixId,
         CancellationToken cancellationToken)
     {
-        var command = new DepartmentDetachPositionCommand(departmentPositionId);
+        var command = new DepartmentDetachPositionCommand(departmentId, positionMatrixId);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 }

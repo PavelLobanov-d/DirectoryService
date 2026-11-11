@@ -8,17 +8,17 @@ using DirectoryService.Core.PositionsMatrix.Delete;
 using DirectoryService.Core.PositionsMatrix.Get;
 using DirectoryService.Core.PositionsMatrix.GetById;
 using DirectoryService.Core.PositionsMatrix.GetByParentId;
+using DirectoryService.Core.PositionsMatrix.Rename;
 using DirectoryService.Core.PositionsMatrix.Update;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection.Metadata;
 
 namespace DirectoryService.Controllers.PositionsMatrix;
 
 
 [ApiController]
-[Route("[controller]")]
+[Route("positions")]
 public class PositionMatrixController : ControllerBase
 {
     private readonly IPositionMatrixService _positionMatrixService;
@@ -42,11 +42,11 @@ public class PositionMatrixController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType<Envelope<List<PositionMatrix>>>(200)]
+    [ProducesResponseType<Envelope<List<PositionMatrixDto>>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<PositionMatrix>>> GetAsync(
-        [FromServices] ICommandHandler<List<PositionMatrix>, PositionMatrixGetCommand> handler,
+    public async Task<EndPointResult<List<PositionMatrixDto>>> GetAsync(
+        [FromServices] ICommandHandler<List<PositionMatrixDto>, PositionMatrixGetCommand> handler,
         [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {
@@ -64,6 +64,22 @@ public class PositionMatrixController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new PositionMatrixGetByIdCommand(positionMatrixId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpPatch("{positionMatrixId:guid}")]
+    [ProducesResponseType<Envelope<bool>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    [ProducesResponseType<Envelope>(400)]
+    [ProducesResponseType<Envelope>(404)]
+    [ProducesResponseType<Envelope>(409)]
+    public async Task<EndPointResult<bool>> RenameAsync(
+        [FromServices] ICommandHandler<bool, RenamePositionCommand> handler,
+        [FromRoute] Guid positionMatrixId,
+        [FromBody] RenamePositionDto request,
+        CancellationToken cancellationToken)
+    {
+        var command = new RenamePositionCommand(positionMatrixId, request);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 

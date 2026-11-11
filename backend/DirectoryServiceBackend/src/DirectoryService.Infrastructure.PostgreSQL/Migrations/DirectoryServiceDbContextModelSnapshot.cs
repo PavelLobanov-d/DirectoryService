@@ -17,7 +17,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "9.0.20")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -57,9 +57,11 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                     b.HasKey("Id")
                         .HasName("PK_department_locations");
 
-                    b.HasIndex("DepartmentId");
-
                     b.HasIndex("LocationId");
+
+                    b.HasIndex("DepartmentId", "LocationId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_department_locations_department_location");
 
                     b.ToTable("department_locations", (string)null);
                 });
@@ -81,9 +83,11 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                     b.HasKey("Id")
                         .HasName("PK_department_positions");
 
-                    b.HasIndex("DepartmentId");
-
                     b.HasIndex("PositionMatrixId");
+
+                    b.HasIndex("DepartmentId", "PositionMatrixId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_department_positions_department_position");
 
                     b.ToTable("department_positions", (string)null);
                 });
