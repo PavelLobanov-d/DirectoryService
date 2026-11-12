@@ -1,5 +1,5 @@
 ﻿using DirectoryService.Core.Abstractions;
 
-namespace DirectoryService.Core.Locations.GetById;
+namespace DirectoryService.Core.Locations.Queries.GetById;
 
 public record LocationGetByIdCommand(Guid LocationId) : ICommand;

@@ -1,8 +1,8 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
-using DirectoryService.Core.Locations.Create;
-using DirectoryService.Core.Locations.Update;
+using DirectoryService.Core.Locations.Commands.Create;
+using DirectoryService.Core.Locations.Commands.Update;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.Statistics;

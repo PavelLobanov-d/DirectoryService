@@ -8,7 +8,7 @@ using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
 
-namespace DirectoryService.Core.Locations.Update;
+namespace DirectoryService.Core.Locations.Commands.Update;
 
 public class LocationUpdateHandler : ICommandHandler<bool, LocationUpdateCommand>
 {

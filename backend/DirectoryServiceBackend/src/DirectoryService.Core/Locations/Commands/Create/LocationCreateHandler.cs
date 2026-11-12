@@ -9,7 +9,7 @@ using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 
 
-namespace DirectoryService.Core.Locations.Create;
+namespace DirectoryService.Core.Locations.Commands.Create;
 
 public class LocationCreateHandler : ICommandHandler<CreatedObjectGuid, LocationCreateCommand>
 {

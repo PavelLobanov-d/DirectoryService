@@ -9,7 +9,7 @@ using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
-namespace DirectoryService.Core.Locations.Delete;
+namespace DirectoryService.Core.Locations.Commands.Delete;
 
 public class LocationDeleteHandler : ICommandHandler<bool, LocationDeleteCommand>
 {
