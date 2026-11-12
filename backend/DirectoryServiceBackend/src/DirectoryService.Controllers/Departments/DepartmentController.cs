@@ -3,16 +3,17 @@ using DirectoryService.Contracts;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Departments;
-using DirectoryService.Core.Departments.ChangeParent;
-using DirectoryService.Core.Departments.Create;
-using DirectoryService.Core.Departments.Delete;
-using DirectoryService.Core.Departments.DetachLocation;
-using DirectoryService.Core.Departments.DetachPosition;
-using DirectoryService.Core.Departments.Get;
-using DirectoryService.Core.Departments.GetById;
-using DirectoryService.Core.Departments.LinkLocation;
-using DirectoryService.Core.Departments.LinkPosition;
-using DirectoryService.Core.Departments.Update;
+using DirectoryService.Core.Departments.Commands.ChangeParent;
+using DirectoryService.Core.Departments.Commands.Create;
+using DirectoryService.Core.Departments.Commands.Delete;
+using DirectoryService.Core.Departments.Commands.DetachLocation;
+using DirectoryService.Core.Departments.Commands.DetachPosition;
+using DirectoryService.Core.Departments.Commands.LinkLocation;
+using DirectoryService.Core.Departments.Commands.LinkPosition;
+using DirectoryService.Core.Departments.Commands.Update;
+using DirectoryService.Core.Departments.Queries.Get;
+using DirectoryService.Core.Departments.Queries.GetById;
+using DirectoryService.Core.Departments.Queries.GetByParentId;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
@@ -39,11 +40,11 @@ public class DepartmentController : ControllerBase
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
     [HttpGet]
-    [ProducesResponseType<List<Department>> (200)]
+    [ProducesResponseType<List<GetDepartmentResponse>> (200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<Department>>> GetAsync(
-        [FromServices] ICommandHandler<List<Department>, GetDepartmentCommand> handler,
+    public async Task<EndPointResult<List<GetDepartmentResponse>>> GetAsync(
+        [FromServices] ICommandHandler<List<GetDepartmentResponse>, GetDepartmentCommand> handler,
         [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {
@@ -82,15 +83,28 @@ public class DepartmentController : ControllerBase
     }
 
     [HttpGet("{departmentId:guid}")]
-    [ProducesResponseType<Envelope<List<Department>>>(200)]
+    [ProducesResponseType<Envelope<GetDepartmentResponse>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<Department?>> GetByIdAsync(
-        [FromServices] ICommandHandler<Department?, GetDepartmentByIdCommand> handler,
+    public async Task<EndPointResult<GetDepartmentResponse?>> GetByIdAsync(
+        [FromServices] ICommandHandler<GetDepartmentResponse?, GetDepartmentByIdCommand> handler,
         [FromRoute] Guid departmentId,
         CancellationToken cancellationToken)
     {
         var command = new GetDepartmentByIdCommand(departmentId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpGet("{departmentId:guid}/children")]
+    [ProducesResponseType<Envelope<List<GetDepartmentResponse>>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    [ProducesResponseType<Envelope>(404)]
+    public async Task<EndPointResult<List<GetDepartmentResponse>>> GetChildrenAsync(
+        [FromServices] ICommandHandler<List<GetDepartmentResponse>, GetDepartmentByParentIdCommand> handler,
+        [FromRoute] Guid departmentId,
+        CancellationToken cancellationToken)
+    {
+        var command = new GetDepartmentByParentIdCommand(departmentId);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 

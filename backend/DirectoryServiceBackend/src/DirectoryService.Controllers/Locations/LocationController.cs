@@ -1,14 +1,10 @@
-﻿using CSharpFunctionalExtensions;
-using DirectoryService.Contracts;
+﻿using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Abstractions;
-using DirectoryService.Core.Departments.Create;
-using DirectoryService.Core.Locations;
 using DirectoryService.Core.Locations.Create;
 using DirectoryService.Core.Locations.Delete;
 using DirectoryService.Core.Locations.Get;
 using DirectoryService.Core.Locations.GetById;
-using DirectoryService.Core.Locations.GetByIds;
 using DirectoryService.Core.Locations.Update;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Shared;

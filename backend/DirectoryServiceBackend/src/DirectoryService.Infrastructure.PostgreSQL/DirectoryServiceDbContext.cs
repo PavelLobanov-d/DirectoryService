@@ -19,7 +19,7 @@ using System.Text;
 
 namespace DirectoryService.Infrastructure.PostgreSQL;
 
-public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext
+public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext, IReadDbContext
 {
     
     private readonly string _connectionString = null!;
@@ -64,4 +64,6 @@ public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext
     public DbSet<DepartmentChiefPosition> DepartmentChiefPositions => Set<DepartmentChiefPosition>();
     public DbSet<DepartmentLocation> DepartmentLocations => Set<DepartmentLocation>();
     public DbSet<Statistica> Statistics => Set<Statistica>();
+
+    public IQueryable<Department> DepartmentsRead => Set<Department>().AsQueryable().AsNoTracking();
 }
