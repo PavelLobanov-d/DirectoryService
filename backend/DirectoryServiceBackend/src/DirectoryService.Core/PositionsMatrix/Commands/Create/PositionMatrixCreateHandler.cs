@@ -10,7 +10,7 @@ using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
 
-namespace DirectoryService.Core.PositionsMatrix.Create;
+namespace DirectoryService.Core.PositionsMatrix.Commands.Create;
 
 public class PositionMatrixCreateHandler : ICommandHandler<CreatedObjectGuid, PositionMatrixCreateCommand>
 {

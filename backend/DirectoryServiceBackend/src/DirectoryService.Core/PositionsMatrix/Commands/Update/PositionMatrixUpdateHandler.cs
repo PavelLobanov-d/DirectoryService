@@ -10,7 +10,7 @@ using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
 
-namespace DirectoryService.Core.PositionsMatrix.Update;
+namespace DirectoryService.Core.PositionsMatrix.Commands.Update;
 
 public class PositionMatrixUpdateHandler : ICommandHandler<bool, PositionMatrixUpdateCommand>
 {

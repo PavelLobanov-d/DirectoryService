@@ -2,15 +2,14 @@
 using DirectoryService.Contracts.PositionsMatrix;
 using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.PositionsMatrix;
-using DirectoryService.Core.PositionsMatrix.ChangeParent;
-using DirectoryService.Core.PositionsMatrix.Create;
-using DirectoryService.Core.PositionsMatrix.Delete;
-using DirectoryService.Core.PositionsMatrix.Get;
-using DirectoryService.Core.PositionsMatrix.GetById;
-using DirectoryService.Core.PositionsMatrix.GetByParentId;
-using DirectoryService.Core.PositionsMatrix.Rename;
-using DirectoryService.Core.PositionsMatrix.Update;
-using DirectoryService.Domain.PositionsMatrix;
+using DirectoryService.Core.PositionsMatrix.Commands.ChangeParent;
+using DirectoryService.Core.PositionsMatrix.Commands.Create;
+using DirectoryService.Core.PositionsMatrix.Commands.Delete;
+using DirectoryService.Core.PositionsMatrix.Commands.Rename;
+using DirectoryService.Core.PositionsMatrix.Commands.Update;
+using DirectoryService.Core.PositionsMatrix.Queries.Get;
+using DirectoryService.Core.PositionsMatrix.Queries.GetById;
+using DirectoryService.Core.PositionsMatrix.Queries.GetByParentId;
 using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
@@ -42,11 +41,11 @@ public class PositionMatrixController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType<Envelope<List<PositionMatrixDto>>>(200)]
+    [ProducesResponseType<Envelope<List<GetPositionMatrixResponse>>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<PositionMatrixDto>>> GetAsync(
-        [FromServices] ICommandHandler<List<PositionMatrixDto>, PositionMatrixGetCommand> handler,
+    public async Task<EndPointResult<List<GetPositionMatrixResponse>>> GetAsync(
+        [FromServices] ICommandHandler<List<GetPositionMatrixResponse>, PositionMatrixGetCommand> handler,
         [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {
@@ -55,15 +54,28 @@ public class PositionMatrixController : ControllerBase
     }
 
     [HttpGet("{positionMatrixId:guid}")]
-    [ProducesResponseType<Envelope<PositionMatrix>>(200)]
+    [ProducesResponseType<Envelope<GetPositionMatrixResponse>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<PositionMatrix?>> GetByIdAsync(
-        [FromServices] ICommandHandler<PositionMatrix?, PositionMatrixGetByIdCommand> handler,
+    public async Task<EndPointResult<GetPositionMatrixResponse>> GetByIdAsync(
+        [FromServices] ICommandHandler<GetPositionMatrixResponse, PositionMatrixGetByIdCommand> handler,
         [FromRoute] Guid positionMatrixId,
         CancellationToken cancellationToken)
     {
         var command = new PositionMatrixGetByIdCommand(positionMatrixId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpGet("{positionMatrixId:guid}/children")]
+    [ProducesResponseType<Envelope<List<GetPositionMatrixResponse>>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    [ProducesResponseType<Envelope>(404)]
+    public async Task<EndPointResult<List<GetPositionMatrixResponse>>> GetChildrenAsync(
+        [FromServices] ICommandHandler<List<GetPositionMatrixResponse>, PositionMatrixGetByParentIdCommand> handler,
+        [FromRoute] Guid positionMatrixId,
+        CancellationToken cancellationToken)
+    {
+        var command = new PositionMatrixGetByParentIdCommand(positionMatrixId);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 

@@ -9,7 +9,7 @@ using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
 
-namespace DirectoryService.Core.PositionsMatrix.ChangeParent;
+namespace DirectoryService.Core.PositionsMatrix.Commands.ChangeParent;
 
 public class PositionMatrixChangeParentHandler : ICommandHandler<bool, PositionMatrixChangeParentCommand>
 {

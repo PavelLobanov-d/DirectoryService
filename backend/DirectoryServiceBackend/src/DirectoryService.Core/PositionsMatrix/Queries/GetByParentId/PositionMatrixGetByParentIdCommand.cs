@@ -1,5 +1,5 @@
 ﻿using DirectoryService.Core.Abstractions;
 
-namespace DirectoryService.Core.PositionsMatrix.GetByParentId;
+namespace DirectoryService.Core.PositionsMatrix.Queries.GetByParentId;
 
 public record PositionMatrixGetByParentIdCommand(Guid ParentPositionMatrixId) : ICommand;

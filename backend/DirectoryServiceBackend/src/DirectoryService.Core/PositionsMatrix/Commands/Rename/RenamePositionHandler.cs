@@ -1,4 +1,4 @@
-using CSharpFunctionalExtensions;
+﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Statistics;
@@ -7,7 +7,7 @@ using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
-namespace DirectoryService.Core.PositionsMatrix.Rename;
+namespace DirectoryService.Core.PositionsMatrix.Commands.Rename;
 
 public class RenamePositionHandler : ICommandHandler<bool, RenamePositionCommand>
 {

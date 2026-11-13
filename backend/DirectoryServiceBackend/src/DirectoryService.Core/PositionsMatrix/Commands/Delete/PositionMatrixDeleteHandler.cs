@@ -10,7 +10,7 @@ using DirectoryService.Domain.Statistics;
 using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
-namespace DirectoryService.Core.PositionsMatrix.Delete;
+namespace DirectoryService.Core.PositionsMatrix.Commands.Delete;
 
 public class PositionMatrixDeleteHandler : ICommandHandler<bool, PositionMatrixDeleteCommand>
 {
