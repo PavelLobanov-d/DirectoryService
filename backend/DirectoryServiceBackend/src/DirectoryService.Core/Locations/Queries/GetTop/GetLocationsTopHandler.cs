@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.Locations.Queries.GetTop;
 
-public class GetLocationsTopHandler : ICommandHandler<List<GetLocationsTop>, GetLocationsTopCommand>
+public class GetLocationsTopHandler : ICommandHandler<List<GetLocationsByDepartmentsCount>, GetLocationsTopCommand>
 {
     private const int TOP_SIZE = 5;
 
@@ -27,17 +27,19 @@ public class GetLocationsTopHandler : ICommandHandler<List<GetLocationsTop>, Get
         GetLocationsTopCommand command,
         CancellationToken cancellationToken = default)
     {
-        var rows = await _readDbContext.LocationsRead
-            .Where(l => l.DepartmentLocations.Any())
-            .Select(l => new
-            {
-                l.Id,
-                l.Name,
-                l.Address,
-                DepartmentCount = l.DepartmentLocations.Count,
-            })
-            .OrderByDescending(l => l.DepartmentCount)
-            .ThenBy(l => l.Id)
+        var rows = await (
+                from l in _readDbContext.LocationsRead
+                join dl in _readDbContext.DepartmentLocationsRead on l.Id equals dl.LocationId
+                group dl by new { l.Id, l.Name, l.Address }
+                into g
+                orderby g.Count() descending, g.Key.Id
+                select new
+                {
+                    g.Key.Id,
+                    g.Key.Name,
+                    g.Key.Address,
+                    DepartmentCount = g.Count(),
+                })
             .Take(TOP_SIZE)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
