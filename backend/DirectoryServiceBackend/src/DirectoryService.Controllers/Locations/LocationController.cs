@@ -33,12 +33,12 @@ public class LocationController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType<Envelope<List<GetLocationResponse>>>(200)]
+    [ProducesResponseType<Envelope<PagedResult<LocationListItemDto>>>(200)]
+    [ProducesResponseType<Envelope>(400)]
     [ProducesResponseType<Envelope>(500)]
-    [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<GetLocationResponse>>> GetAsync(
-        [FromServices] ICommandHandler<List<GetLocationResponse>, LocationGetCommand> handler,
-        [FromQuery] SelectDto request,
+    public async Task<EndPointResult<PagedResult<LocationListItemDto>>> GetAsync(
+        [FromServices] ICommandHandler<PagedResult<LocationListItemDto>, LocationGetCommand> handler,
+        [FromQuery] GetLocationsRequest request,
         CancellationToken cancellationToken)
     {
         var command = new LocationGetCommand(request);

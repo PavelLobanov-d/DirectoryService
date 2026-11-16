@@ -17,6 +17,7 @@ public sealed class Location
     public LocationId Id { get; private set; } = null!;
     public LocationName Name { get; private set; } = null!;
     public Address Address { get; private set; } = null!;
+    public DateTime CreatedAt { get; private set; }
 
     private readonly List<DepartmentLocation> _departmentLocations = [];
     public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;
@@ -26,8 +27,11 @@ public sealed class Location
         Address address)
     {
 
-        Location newObject = new(new LocationId(Guid.CreateVersion7()), name, address);
-       
+        Location newObject = new(new LocationId(Guid.CreateVersion7()), name, address)
+        {
+            CreatedAt = DateTime.UtcNow
+        };
+
         return newObject;
     }
 

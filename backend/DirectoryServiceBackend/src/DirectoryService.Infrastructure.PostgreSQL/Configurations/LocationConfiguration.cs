@@ -28,5 +28,9 @@ internal class LocationConfiguration : IEntityTypeConfiguration<Location>
             .HasMaxLength(200)
             .HasColumnName("address")
             .IsRequired();
+
+        builder.Property(v => v.CreatedAt)
+            .HasColumnName("created_at")
+            .IsRequired();
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DirectoryService.Core.Database;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using System.Data;
 

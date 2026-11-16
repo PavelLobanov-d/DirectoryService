@@ -1,6 +1,6 @@
-﻿using DirectoryService.Contracts;
+﻿using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Abstractions;
 
 namespace DirectoryService.Core.Locations.Queries.Get;
 
-public record LocationGetCommand(SelectDto Request) : ICommand;
+public record LocationGetCommand(GetLocationsRequest Request) : ICommand;
