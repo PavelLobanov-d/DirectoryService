@@ -38,4 +38,5 @@ public partial record DepartmentName
     [GeneratedRegex("\\s+", options: RegexOptions.Compiled)]
     private static partial Regex _manySpaces { get; }
     public override string ToString() => Value.ToString();
+    public static explicit operator string(DepartmentName name) => name.Value;
 }

@@ -40,11 +40,11 @@ public class DepartmentController : ControllerBase
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
     [HttpGet]
-    [ProducesResponseType<List<GetDepartmentResponse>> (200)]
+    [ProducesResponseType<Envelope<GetDepartmentsResponse>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<GetDepartmentResponse>>> GetAsync(
-        [FromServices] ICommandHandler<List<GetDepartmentResponse>, GetDepartmentCommand> handler,
+    public async Task<EndPointResult<GetDepartmentsResponse>> GetAsync(
+        [FromServices] ICommandHandler<GetDepartmentsResponse, GetDepartmentCommand> handler,
         [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {

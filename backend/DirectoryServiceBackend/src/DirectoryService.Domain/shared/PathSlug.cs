@@ -1,6 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
-using System.Text.RegularExpressions;
+using DirectoryService.Domain.Departments;
 using DirectoryService.Shared;
+using System.Text.RegularExpressions;
 
 namespace DirectoryService.Domain.shared;
 
@@ -36,5 +37,5 @@ public sealed partial record PathSlug
     [GeneratedRegex("^[a-z.]+$", options: RegexOptions.Compiled)]
     private static partial Regex _slugPathRegex { get; }
     public override string ToString() => Value.ToString();
-
+    public static explicit operator string(PathSlug slug) => slug.Value;
 }
