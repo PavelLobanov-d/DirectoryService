@@ -34,4 +34,5 @@ public sealed partial record Slug
     [GeneratedRegex("^[a-z]+$", options: RegexOptions.Compiled)]
     private static partial Regex _slugRegex { get; }
     public override string ToString() => Value.ToString();
+    public static explicit operator string(Slug slug) => slug.Value;
 }

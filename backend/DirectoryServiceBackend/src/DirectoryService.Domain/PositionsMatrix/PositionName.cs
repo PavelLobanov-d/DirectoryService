@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using DirectoryService.Domain.Departments;
 using DirectoryService.Shared;
 using System.Text.RegularExpressions;
 
@@ -37,4 +38,5 @@ public partial record PositionName
     [GeneratedRegex("\\s+", options: RegexOptions.Compiled)]
     private static partial Regex _manySpaces { get; }
     public override string ToString() => Value.ToString();
+    public static explicit operator string(PositionName name) => name.Value;
 }
