@@ -17,7 +17,6 @@ public static class DependencyInjection
             .AddScoped<ILocationsService, LocationsService>()
             .AddScoped<IPositionMatrixService, PositionMatrixService>()
             .AddScoped<IDepartmentsService, DepartmentsService>()
-            .AddScoped<IDepartmentsService, DepartmentsService>()
             .AddScoped<IStatisticsService, StatisticsService>();
 
         services.AddScoped<IDepartmentsService, DepartmentsService>();

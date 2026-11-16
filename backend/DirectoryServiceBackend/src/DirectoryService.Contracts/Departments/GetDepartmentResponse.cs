@@ -3,7 +3,7 @@ namespace DirectoryService.Contracts.Departments;
 
 public record GetDepartmentResponse(
     Guid Id,
-    Guid ChiefPositionId,
+    Guid? ChiefPositionId,
     string PathSlugFull,
     string Name,
     Guid? ParentId,
