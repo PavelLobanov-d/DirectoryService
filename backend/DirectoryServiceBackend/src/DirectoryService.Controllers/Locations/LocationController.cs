@@ -6,6 +6,7 @@ using DirectoryService.Core.Locations.Commands.Delete;
 using DirectoryService.Core.Locations.Commands.Update;
 using DirectoryService.Core.Locations.Queries.Get;
 using DirectoryService.Core.Locations.Queries.GetById;
+using DirectoryService.Core.Locations.Queries.GetTop;
 using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
@@ -41,6 +42,17 @@ public class LocationController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new LocationGetCommand(request);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpGet("top")]
+    [ProducesResponseType<Envelope<List<GetLocationsByDepartmentsCount>>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    public async Task<EndPointResult<List<GetLocationsByDepartmentsCount>>> GetTopAsync(
+        [FromServices] ICommandHandler<List<GetLocationsByDepartmentsCount>, GetLocationsTopCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var command = new GetLocationsTopCommand();
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
