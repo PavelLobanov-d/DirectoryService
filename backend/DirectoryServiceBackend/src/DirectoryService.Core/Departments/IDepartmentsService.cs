@@ -21,5 +21,8 @@ public interface IDepartmentsService
     public Task<Result<bool, Error>> DetachPositionAsync(Guid departmentPositionId, CancellationToken cancellationToken = default);
     public Task<Result<CreatedObjectGuid, Error>> LinkLocationAsync(Guid departmentId, Guid locationId, CancellationToken cancellationToken = default);
     public Task<Result<bool, Error>> DetachLocationAsync(Guid departmentId, Guid locationId, CancellationToken cancellationToken = default);
-    public Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default);
+    public Task<Result<Department?, Errors>> FindChildByIdAsync(
+        Department department,
+        DepartmentId findDepartmentId,
+        CancellationToken cancellationToken = default);
 }

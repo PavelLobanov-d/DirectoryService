@@ -195,10 +195,11 @@ public class DepartmentsRepository : IDepartmentsRepository
     public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default)
     {
         int result = await _dbContext
-        .SaveChangesAsync(cancellationToken)
-        .ConfigureAwait(false);
+            .SaveChangesAsync(cancellationToken)
+            .ConfigureAwait(false);
         return result > 0;
     }
+
     public async Task<Result<bool, Error>> UpdateAsync(Department department, CancellationToken cancellationToken = default)
     {
         var result = _dbContext.Departments

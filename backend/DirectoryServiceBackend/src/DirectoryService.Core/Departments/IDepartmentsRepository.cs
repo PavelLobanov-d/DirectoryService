@@ -19,4 +19,5 @@ public interface IDepartmentsRepository
     Task<Result<bool, Error>> DeleteAsync(Guid departmentId, CancellationToken cancellationToken = default);
     Task<Result<bool, Error>> DeleteAsync(Department department, CancellationToken cancellationToken = default);
     Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default);
+
 }

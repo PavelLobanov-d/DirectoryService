@@ -5,8 +5,9 @@ using DirectoryService.Core.Departments;
 using DirectoryService.Core.Locations;
 using DirectoryService.Core.PositionsMatrix;
 using DirectoryService.Core.Statistics;
-using DirectoryService.Infrastructure.PostgreSQL.Database;
+using DirectoryService.Core.Database;
 using DirectoryService.Infrastructure.PostgreSQL.Repositories;
+using DirectoryService.Infrastructure.PostgreSQL.Database;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,7 @@ public static class DependencyInjection
             .AddScoped<IDepartmentsRepository, DepartmentsRepository>()
             .AddScoped<IDepartmentPositionsRepository, DepartmentPositionsRepository>()
             .AddScoped<IDepartmentLocationsRepository, DepartmentLocationsRepository>()
-            .AddScoped<IStatisticsRepository, StatisticsRepository>();
+            .AddScoped<IStatisticsRepository, StatisticsRepository>()
+            .AddScoped<ITransactionManager, TransactionManager>();
     }
 }

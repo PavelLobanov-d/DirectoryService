@@ -21,7 +21,6 @@ public interface ILocationsRepository
     /// <summary>
     /// сохранить изменения в записи локации
     /// </summary>
-    /// <param name="location">объект Location</param>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
     Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken = default);

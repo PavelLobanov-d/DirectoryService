@@ -37,5 +37,9 @@ internal class DepartmentPositionConfiguration : IEntityTypeConfiguration<Depart
             .HasForeignKey(v => v.PositionMatrixId)
             .OnDelete(DeleteBehavior.Cascade)
             .IsRequired();
+
+        builder.HasIndex(dp => new { dp.DepartmentId, dp.PositionMatrixId })
+            .IsUnique()
+            .HasDatabaseName("UX_department_positions_department_position");
     }
 }

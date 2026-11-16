@@ -1,16 +1,16 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
+using DirectoryService.Core.Locations.Commands.Create;
+using DirectoryService.Core.Locations.Commands.Update;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using DirectoryService.Domain.Statistics;
+using DirectoryService.Shared;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 
-
 namespace DirectoryService.Core.Locations;
-
 public class LocationsService: ILocationsService
 {
     private readonly ILocationsRepository _locationsRepository;
@@ -37,7 +37,7 @@ public class LocationsService: ILocationsService
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>Guid новой локации</returns>
-    public async Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken)
+    private async Task<Result<CreatedObjectGuid, Errors>> CreateAsync(CreateLocationDto locationDto, CancellationToken cancellationToken)
     {
         //валидация входящих параметров
         ValidationResult validationResult = await _createValidator.ValidateAsync(locationDto, cancellationToken).ConfigureAwait(false);
@@ -98,7 +98,7 @@ public class LocationsService: ILocationsService
     /// <param name="locationId"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>true, если удаление успешно</returns>
-    public async Task<Result<bool, Error>> DeleteAsync(Guid locationId, CancellationToken cancellationToken)
+    private async Task<Result<bool, Error>> DeleteAsync(Guid locationId, CancellationToken cancellationToken)
     {
         var result = await _locationsRepository.DeleteAsync(locationId, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
@@ -177,7 +177,7 @@ public class LocationsService: ILocationsService
     /// <param name="locationDto"></param>
     /// <param name="cancellationToken"></param>
     /// <returns>true, если обновление успешно</returns>
-    public async Task<Result<bool, Errors>> UpdateAsync(Guid locationId, UpdateLocationDto locationDto, CancellationToken cancellationToken)
+    private async Task<Result<bool, Errors>> UpdateAsync(Guid locationId, UpdateLocationDto locationDto, CancellationToken cancellationToken)
     {
         //валидация входящих параметров
         var validationResult = await _updateValidator.ValidateAsync(locationDto, cancellationToken).ConfigureAwait(false);
@@ -276,7 +276,7 @@ public class LocationsService: ILocationsService
         return GeneralErrors.NotFound(locationId).ToErrors();
     }
 
-    public async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken)
+    private async Task<Result<bool, Error>> SaveAsync(CancellationToken cancellationToken)
     {
         var result = await _locationsRepository.SaveAsync(cancellationToken).ConfigureAwait(false);
         return result;

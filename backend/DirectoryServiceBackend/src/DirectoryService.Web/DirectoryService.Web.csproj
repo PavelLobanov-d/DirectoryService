@@ -17,6 +17,7 @@
     </PackageReference>
 	<PackageReference Include="Microsoft.OpenApi" />
 	<PackageReference Include="Scalar.AspNetCore" />
+	<PackageReference Include="Scrutor" />
 	<PackageReference Include="Serilog" />
 	<PackageReference Include="Serilog.AspNetCore" />
 	<PackageReference Include="Serilog.Enrichers.Environment" />

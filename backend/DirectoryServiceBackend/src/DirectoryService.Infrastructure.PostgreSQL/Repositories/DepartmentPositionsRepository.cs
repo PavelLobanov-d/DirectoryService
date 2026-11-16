@@ -3,6 +3,7 @@ using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
+using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -45,6 +46,21 @@ internal class DepartmentPositionsRepository : IDepartmentPositionsRepository
             .Include(v => v.Department)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    public async Task<Result<DepartmentPosition?, Error>> GetByDepartmentAndPositionAsync(
+        Guid departmentId,
+        Guid positionMatrixId,
+        CancellationToken cancellationToken = default)
+    {
+        Result<List<DepartmentPosition>?, Error> result = await GetByAsync(
+            dp => dp.DepartmentId == new DepartmentId(departmentId)
+                && dp.PositionMatrixId == new PositionMatrixId(positionMatrixId),
+            cancellationToken).ConfigureAwait(false);
+        if (result.IsFailure)
+            return result.Error;
+
+        return result.Value?.FirstOrDefault();
     }
 
     public async Task<Result<List<DepartmentPosition>?, Error>> GetPositionsByDepartmentIdAsync(Guid departmentId, CancellationToken cancellationToken = default)
