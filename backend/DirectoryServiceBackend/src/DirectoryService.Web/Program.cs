@@ -43,6 +43,8 @@ try
         options.UseNpgsql(connectionString));
     builder.Services.AddScoped<IDirectoryServiceDbContext>(provider =>
         provider.GetRequiredService<DirectoryServiceDbContext>());
+    builder.Services.AddScoped<IReadDbContext>(provider =>
+        provider.GetRequiredService<DirectoryServiceDbContext>());
 
     builder.Services.AddOpenApi();
     builder.Services.AddEndpointsApiExplorer();

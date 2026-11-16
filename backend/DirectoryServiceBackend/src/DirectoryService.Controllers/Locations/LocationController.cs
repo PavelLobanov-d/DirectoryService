@@ -1,16 +1,12 @@
-﻿using CSharpFunctionalExtensions;
-using DirectoryService.Contracts;
+﻿using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Core.Abstractions;
-using DirectoryService.Core.Departments.Create;
-using DirectoryService.Core.Locations;
-using DirectoryService.Core.Locations.Create;
-using DirectoryService.Core.Locations.Delete;
-using DirectoryService.Core.Locations.Get;
-using DirectoryService.Core.Locations.GetById;
-using DirectoryService.Core.Locations.GetByIds;
-using DirectoryService.Core.Locations.Update;
-using DirectoryService.Domain.Locations;
+using DirectoryService.Core.Locations.Commands.Create;
+using DirectoryService.Core.Locations.Commands.Delete;
+using DirectoryService.Core.Locations.Commands.Update;
+using DirectoryService.Core.Locations.Queries.Get;
+using DirectoryService.Core.Locations.Queries.GetById;
+using DirectoryService.Core.Locations.Queries.GetTop;
 using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
@@ -37,11 +33,11 @@ public class LocationController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType<Envelope<List<Location>>>(200)]
+    [ProducesResponseType<Envelope<List<GetLocationResponse>>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<Location>>> GetAsync(
-        [FromServices] ICommandHandler<List<Location>, LocationGetCommand> handler,
+    public async Task<EndPointResult<List<GetLocationResponse>>> GetAsync(
+        [FromServices] ICommandHandler<List<GetLocationResponse>, LocationGetCommand> handler,
         [FromQuery] SelectDto request,
         CancellationToken cancellationToken)
     {
@@ -49,12 +45,23 @@ public class LocationController : ControllerBase
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
+    [HttpGet("top")]
+    [ProducesResponseType<Envelope<List<GetLocationsByDepartmentsCount>>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    public async Task<EndPointResult<List<GetLocationsByDepartmentsCount>>> GetTopAsync(
+        [FromServices] ICommandHandler<List<GetLocationsByDepartmentsCount>, GetLocationsTopCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var command = new GetLocationsTopCommand();
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
     [HttpGet("{locationId:guid}")]
-    [ProducesResponseType<Envelope<Location>>(200)]
+    [ProducesResponseType<Envelope<GetLocationResponse>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<Location?>> GetByIdAsync(
-        [FromServices] ICommandHandler<Location?, LocationGetByIdCommand> handler,
+    public async Task<EndPointResult<GetLocationResponse>> GetByIdAsync(
+        [FromServices] ICommandHandler<GetLocationResponse, LocationGetByIdCommand> handler,
         [FromRoute] Guid locationId,
         CancellationToken cancellationToken)
     {

@@ -1,9 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.PositionsMatrix;
-using DirectoryService.Core.PositionsMatrix.Create;
-using DirectoryService.Core.PositionsMatrix.GetById;
-using DirectoryService.Core.PositionsMatrix.Update;
+using DirectoryService.Core.PositionsMatrix.Commands.Update;
 using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;

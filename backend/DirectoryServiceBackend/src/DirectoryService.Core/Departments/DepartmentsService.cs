@@ -20,8 +20,8 @@ using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using DirectoryService.Core.Validation;
-using DirectoryService.Core.Departments.Update;
-using DirectoryService.Core.Departments.Create;
+using DirectoryService.Core.Departments.Commands.Create;
+using DirectoryService.Core.Departments.Commands.Update;
 
 namespace DirectoryService.Core.Departments;
 public class DepartmentsService : IDepartmentsService
