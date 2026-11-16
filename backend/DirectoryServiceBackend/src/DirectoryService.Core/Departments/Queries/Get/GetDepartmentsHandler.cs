@@ -42,7 +42,7 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
                 continue;
 
             string cleanKey = keySearch.Key.Trim();
-            string pattern = $"%{EscapeLike(searchValue.ToLowerInvariant())}%";
+            string pattern = $"%{EscapeLike(searchValue.ToLowerInvariant().Trim())}%";
 
             if (cleanKey.Equals(nameof(Department.Name), StringComparison.OrdinalIgnoreCase))
             {
