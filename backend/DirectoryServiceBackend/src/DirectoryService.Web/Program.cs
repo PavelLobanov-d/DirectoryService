@@ -82,3 +82,6 @@ finally
     await Log.CloseAndFlushAsync().ConfigureAwait(false);
 }
 
+
+public partial class Program { }
+
