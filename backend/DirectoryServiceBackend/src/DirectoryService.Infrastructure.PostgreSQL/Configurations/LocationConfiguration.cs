@@ -32,5 +32,10 @@ internal class LocationConfiguration : IEntityTypeConfiguration<Location>
         builder.Property(v => v.CreatedAt)
             .HasColumnName("created_at")
             .IsRequired();
+
+        builder.Property(v => v.DeletedAt)
+            .HasColumnName("deleted_at");
+
+        builder.HasQueryFilter(v => v.DeletedAt == null);
     }
 }

@@ -10,7 +10,7 @@ using DirectoryService.Domain.Statistics;
 
 namespace DirectoryService.Domain.Departments;
 
-public sealed class Department
+public sealed class Department : ISoftDeletable
 {
     private Department(
         DepartmentId id,
@@ -69,6 +69,12 @@ public sealed class Department
     public IReadOnlyList<DepartmentPosition> DepartmentPositions => _departmentPositions;
     private readonly List<DepartmentLocation> _departmentLocations = [];
     public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;
+    public DateTime? DeletedAt { get; private set; }
+    public bool IsDeleted => DeletedAt.HasValue;
+    public void SoftDelete()
+    {
+        DeletedAt ??= DateTime.UtcNow;
+    }
 
     private Department() { }
     private Department(DepartmentId id, DepartmentName name, Slug slug, Department? parent, DepartmentChiefPosition chiefDepartmentPosition)
@@ -83,6 +89,7 @@ public sealed class Department
         DepartmentChiefPosition = chiefDepartmentPosition;
         _departmentPositions = [];
         _departmentLocations = [];
+        IsDeleted = false;
     }
 
     public static Department Create(

@@ -129,6 +129,20 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         object? result = await command.ExecuteScalarAsync().ConfigureAwait(false);
         return (long)result!;
     }
+
+    protected async Task<bool> IsSoftDeletedAsync(string table, string idColumn, Guid id)
+    {
+        await using var connection = new NpgsqlConnection(Fixture.ConnectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        await using var command = new NpgsqlCommand(
+            $"SELECT deleted_at IS NOT NULL FROM {table} WHERE {idColumn} = @id",
+            connection);
+        command.Parameters.AddWithValue("id", id);
+
+        object? result = await command.ExecuteScalarAsync().ConfigureAwait(false);
+        return result is true;
+    }
 }
 
 public sealed record ApiEnvelope<T>(

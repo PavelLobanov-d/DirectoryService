@@ -98,9 +98,21 @@ public sealed class LocationsTests : IntegrationTestBase
         Assert.False(envelope.IsError);
         Assert.True(envelope.Result == true);
 
-        Assert.Equal(0, await CountRowsAsync("locations", "id", locationId));
+        Assert.Equal(1, await CountRowsAsync("locations", "id", locationId));
+        Assert.True(await IsSoftDeletedAsync("locations", "id", locationId));
         Assert.Equal(0, await CountRowsAsync("department_locations", "location_id", locationId));
         Assert.Equal(1, await CountRowsAsync("departments", "id", departmentId));
+
+        HttpResponseMessage listResponse = await Client.GetAsync("/locations?search=Linked%20Office");
+        ApiEnvelope<PagedResult<LocationListItemDto>> listEnvelope =
+            await ReadEnvelopeAsync<PagedResult<LocationListItemDto>>(listResponse);
+
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        Assert.NotNull(listEnvelope.Result);
+        Assert.Equal(0L, listEnvelope.Result.TotalCount);
+
+        Guid recreatedLocationId = await CreateLocationAsync("Linked Office", "Linked street 1");
+        Assert.NotEqual(locationId, recreatedLocationId);
     }
 
     [Fact]

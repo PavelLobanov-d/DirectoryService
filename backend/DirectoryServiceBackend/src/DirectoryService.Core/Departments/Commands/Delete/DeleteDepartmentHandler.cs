@@ -106,10 +106,11 @@ public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCom
                 return await RollbackAsync(transactionScope, "ошибка удаления связи подразделение-руководитель", cancellationToken).ConfigureAwait(false);
         }
 
-        var deleteResult = await _departmentRepository.DeleteAsync(department, cancellationToken).ConfigureAwait(false);
+        department.SoftDelete();
+        var deleteResult = await _departmentRepository.UpdateAsync(department, cancellationToken).ConfigureAwait(false);
         if (deleteResult.IsFailure)
         {
-            _logger.LogError("Error _departmentRepository.DeleteAsync for {DepartmentId}", department.Id);
+            _logger.LogError("Error soft deleting department {DepartmentId}", department.Id);
             return await RollbackAsync(transactionScope, "ошибка удаления департамента", cancellationToken).ConfigureAwait(false);
         }
 

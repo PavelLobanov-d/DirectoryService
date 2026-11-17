@@ -40,6 +40,11 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
             .HasColumnName("parentid")
             .IsRequired(false);
 
+        builder.Property(v => v.DeletedAt)
+            .HasColumnName("deleted_at");
+
+        builder.HasQueryFilter(v => v.DeletedAt == null);
+
         builder.HasMany(v => v.Childs)
             .WithOne(v => v.Parent)
             .HasForeignKey(v => v.ParentId)

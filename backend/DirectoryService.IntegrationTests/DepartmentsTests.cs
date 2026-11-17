@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.IntegrationTests.Infrastructure;
@@ -68,9 +68,22 @@ public sealed class DepartmentsTests : IntegrationTestBase
         Assert.False(deleteEnvelope.IsError);
         Assert.True(deleteEnvelope.Result == true);
 
-        Assert.Equal(0, await CountRowsAsync("departments", "id", departmentId));
+        Assert.Equal(1, await CountRowsAsync("departments", "id", departmentId));
+        Assert.True(await IsSoftDeletedAsync("departments", "id", departmentId));
         Assert.Equal(0, await CountRowsAsync("department_locations", "department_id", departmentId));
         Assert.Equal(0, await CountRowsAsync("department_chiefpositions", "department_id", departmentId));
+
+        HttpResponseMessage listAfterDeleteResponse =
+            await Client.GetAsync("/departments?search=name%3Ddept%20alpha");
+        ApiEnvelope<GetDepartmentsResponse> listAfterDeleteEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentsResponse>(listAfterDeleteResponse);
+
+        Assert.Equal(HttpStatusCode.OK, listAfterDeleteResponse.StatusCode);
+        Assert.NotNull(listAfterDeleteEnvelope.Result);
+        Assert.Equal(0L, listAfterDeleteEnvelope.Result.TotalCount);
+
+        HttpResponseMessage getDeletedResponse = await Client.GetAsync($"/departments/{departmentId}");
+        Assert.Equal(HttpStatusCode.NotFound, getDeletedResponse.StatusCode);
     }
 
     [Fact]
