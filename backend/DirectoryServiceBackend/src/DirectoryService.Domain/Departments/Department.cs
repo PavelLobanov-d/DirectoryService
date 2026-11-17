@@ -89,7 +89,6 @@ public sealed class Department : ISoftDeletable
         DepartmentChiefPosition = chiefDepartmentPosition;
         _departmentPositions = [];
         _departmentLocations = [];
-        IsDeleted = false;
     }
 
     public static Department Create(

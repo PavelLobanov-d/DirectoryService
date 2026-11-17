@@ -1,5 +1,6 @@
 ﻿using DirectoryService.Core;
 using DirectoryService.Infrastructure.PostgreSQL;
+using DirectoryService.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using Serilog.Exceptions;
@@ -11,6 +12,8 @@ public static class DependencyInjection
     public static IServiceCollection AddProgramDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         return services
+            .Configure<SoftDeleteCleanupOptions>(configuration.GetSection("SoftDeleteCleanup"))
+            .AddHostedService<SoftDeleteCleanupService>()
             .AddSerilogLogging(configuration)
             .AddWebDependencies()
             .AddCore()
