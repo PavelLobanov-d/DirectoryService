@@ -59,3 +59,4 @@ public sealed class IntegrationTestFixture : IAsyncLifetime
         await _postgres.DisposeAsync();
     }
 }
+

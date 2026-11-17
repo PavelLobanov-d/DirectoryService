@@ -7,3 +7,4 @@ public sealed class IntegrationCollection : ICollectionFixture<IntegrationTestFi
 {
     public const string Name = "integration";
 }
+

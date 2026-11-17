@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.IntegrationTests.Infrastructure;
@@ -32,6 +33,53 @@ public sealed class LocationsTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task GetLocation_MissingId_ReturnsNotFound()
+    {
+        Guid missingId = Guid.NewGuid();
+
+        HttpResponseMessage response = await Client.GetAsync($"/locations/{missingId}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        ApiEnvelope<GetLocationResponse> envelope = await ReadEnvelopeAsync<GetLocationResponse>(response);
+        Assert.True(envelope.IsError);
+        Assert.NotNull(envelope.Errors);
+        Assert.Contains(envelope.Errors, error => error.Code == "record.not.found");
+    }
+
+    [Fact]
+    public async Task DeleteLocation_MissingId_ReturnsNotFound()
+    {
+        HttpResponseMessage response = await Client.DeleteAsync($"/locations/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        ApiEnvelope<bool?> envelope = await ReadEnvelopeAsync<bool?>(response);
+        Assert.True(envelope.IsError);
+        Assert.NotNull(envelope.Errors);
+        Assert.Contains(envelope.Errors, error => error.Code == "record.not.found");
+    }
+
+    [Fact]
+    public async Task CreateLocation_DuplicateName_ReturnsConflict()
+    {
+        await CreateLocationAsync("Duplicate Office", "Duplicate street 1");
+
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/locations", new
+        {
+            name = "Duplicate Office",
+            address = "Duplicate street 2",
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response);
+        Assert.True(envelope.IsError);
+        Assert.NotNull(envelope.Errors);
+        Assert.Contains(envelope.Errors, error => error.Code == "record.already.exist");
+    }
+
+    [Fact]
     public async Task DeleteLocation_RemovesLocationAndDepartmentLinks()
     {
         Guid chiefId = await CreatePositionAsync("Director", "director");
@@ -46,9 +94,9 @@ public sealed class LocationsTests : IntegrationTestBase
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        ApiEnvelope<bool> envelope = await ReadEnvelopeAsync<bool>(response);
+        ApiEnvelope<bool?> envelope = await ReadEnvelopeAsync<bool?>(response);
         Assert.False(envelope.IsError);
-        Assert.True(envelope.Result);
+        Assert.True(envelope.Result == true);
 
         Assert.Equal(0, await CountRowsAsync("locations", "id", locationId));
         Assert.Equal(0, await CountRowsAsync("department_locations", "location_id", locationId));
@@ -132,4 +180,6 @@ public sealed class LocationsTests : IntegrationTestBase
         Assert.Contains(envelope.Errors, error => error.Code == "value.is.invalid");
     }
 }
+
+
 

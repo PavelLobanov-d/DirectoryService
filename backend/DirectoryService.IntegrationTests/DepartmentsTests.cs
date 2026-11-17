@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.IntegrationTests.Infrastructure;
 using Xunit;
@@ -22,6 +23,12 @@ public sealed class DepartmentsTests : IntegrationTestBase
             chiefId,
             locationsId: locationId);
 
+        await CreateDepartmentAsync(
+            "Dept Beta",
+            "deptbeta",
+            chiefId,
+            locationsId: locationId);
+
         HttpResponseMessage getByIdResponse = await Client.GetAsync($"/departments/{departmentId}");
         Assert.Equal(HttpStatusCode.OK, getByIdResponse.StatusCode);
 
@@ -34,7 +41,7 @@ public sealed class DepartmentsTests : IntegrationTestBase
         Assert.Equal("Dept Alpha", departmentEnvelope.Result.Name);
         Assert.Contains(locationId, departmentEnvelope.Result.LocationsIds ?? []);
 
-        HttpResponseMessage listResponse = await Client.GetAsync("/departments?search=dept%20alpha");
+        HttpResponseMessage listResponse = await Client.GetAsync("/departments?search=name%3Ddept%20alpha");
         Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
 
         ApiEnvelope<GetDepartmentsResponse> listEnvelope =
@@ -45,15 +52,65 @@ public sealed class DepartmentsTests : IntegrationTestBase
         Assert.Equal(1L, listEnvelope.Result.TotalCount);
         Assert.Single(listEnvelope.Result.Items);
 
+        HttpResponseMessage commonSearchResponse = await Client.GetAsync("/departments?search=name%3Ddept");
+        ApiEnvelope<GetDepartmentsResponse> commonSearchEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentsResponse>(commonSearchResponse);
+
+        Assert.Equal(HttpStatusCode.OK, commonSearchResponse.StatusCode);
+        Assert.NotNull(commonSearchEnvelope.Result);
+        Assert.Equal(2L, commonSearchEnvelope.Result.TotalCount);
+        Assert.Equal(2, commonSearchEnvelope.Result.Items.Count);
+
         HttpResponseMessage deleteResponse = await Client.DeleteAsync($"/departments/{departmentId}");
         Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
 
-        ApiEnvelope<bool> deleteEnvelope = await ReadEnvelopeAsync<bool>(deleteResponse);
+        ApiEnvelope<bool?> deleteEnvelope = await ReadEnvelopeAsync<bool?>(deleteResponse);
         Assert.False(deleteEnvelope.IsError);
-        Assert.True(deleteEnvelope.Result);
+        Assert.True(deleteEnvelope.Result == true);
 
         Assert.Equal(0, await CountRowsAsync("departments", "id", departmentId));
         Assert.Equal(0, await CountRowsAsync("department_locations", "department_id", departmentId));
         Assert.Equal(0, await CountRowsAsync("department_chiefpositions", "department_id", departmentId));
     }
+
+    [Fact]
+    public async Task DeleteDepartment_MissingId_ReturnsNotFound()
+    {
+        HttpResponseMessage response = await Client.DeleteAsync($"/departments/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+        ApiEnvelope<bool?> envelope = await ReadEnvelopeAsync<bool?>(response);
+        Assert.True(envelope.IsError);
+        Assert.NotNull(envelope.Errors);
+        Assert.Contains(envelope.Errors, error => error.Code == "record.not.found");
+    }
+
+    [Fact]
+    public async Task CreateDepartment_DuplicateName_ReturnsConflict()
+    {
+        Guid chiefId = await CreatePositionAsync("Director", "director");
+        Guid locationId = await CreateLocationAsync("Conflict Office", "Conflict street 1");
+
+        await CreateDepartmentAsync("Dept Conflict", "deptconflict", chiefId, locationsId: locationId);
+
+        HttpResponseMessage response = await Client.PostAsJsonAsync("/departments", new
+        {
+            name = "Dept Conflict",
+            slug = "deptconflict",
+            parentDepartmentId = (Guid?)null,
+            chiefPositionMatrixId = chiefId,
+            locationsId = new[] { locationId },
+        });
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response);
+        Assert.True(envelope.IsError);
+        Assert.NotNull(envelope.Errors);
+        Assert.Contains(envelope.Errors, error => error.Code == "record.already.exist");
+    }
 }
+
+
+

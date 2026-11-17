@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DirectoryService.Contracts.Departments;
@@ -48,11 +48,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        ApiEnvelope<Guid> envelope = await ReadEnvelopeAsync<Guid>(response);
+        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response);
         Assert.False(envelope.IsError);
-        Assert.NotEqual(Guid.Empty, envelope.Result);
+        Assert.NotEqual(Guid.Empty, envelope.Result!.Value);
 
-        return envelope.Result;
+        return envelope.Result!.Value;
     }
 
     protected async Task<Guid> CreateLocationAsync(string name, string address)
@@ -65,11 +65,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        ApiEnvelope<Guid> envelope = await ReadEnvelopeAsync<Guid>(response);
+        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response);
         Assert.False(envelope.IsError);
-        Assert.NotEqual(Guid.Empty, envelope.Result);
+        Assert.NotEqual(Guid.Empty, envelope.Result!.Value);
 
-        return envelope.Result;
+        return envelope.Result!.Value;
     }
 
     protected async Task<Guid> CreateDepartmentAsync(
@@ -90,11 +90,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        ApiEnvelope<Guid> envelope = await ReadEnvelopeAsync<Guid>(response);
+        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response);
         Assert.False(envelope.IsError);
-        Assert.NotEqual(Guid.Empty, envelope.Result);
+        Assert.NotEqual(Guid.Empty, envelope.Result!.Value);
 
-        return envelope.Result;
+        return envelope.Result!.Value;
     }
 
     protected static async Task<ApiEnvelope<T>> ReadEnvelopeAsync<T>(HttpResponseMessage response)
@@ -140,4 +140,6 @@ public sealed record ApiError(
     string? Code,
     string? Message,
     int Type);
+
+
 
