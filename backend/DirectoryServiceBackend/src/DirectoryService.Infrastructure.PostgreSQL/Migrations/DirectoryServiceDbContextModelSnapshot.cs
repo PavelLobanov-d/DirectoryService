@@ -139,6 +139,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("address");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
