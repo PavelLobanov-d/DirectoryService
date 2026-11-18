@@ -52,6 +52,19 @@ public class DepartmentController : ControllerBase
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
+    [HttpGet("dapper")]
+    [ProducesResponseType<Envelope<GetDepartmentsResponse>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    [ProducesResponseType<Envelope>(400)]
+    public async Task<EndPointResult<GetDepartmentsResponse>> GetDapperAsync(
+        [FromServices] ICommandHandler<GetDepartmentsResponse, GetDepartmentsDapperCommand> handler,
+        [FromQuery] SelectDto request,
+        CancellationToken cancellationToken)
+    {
+        var command = new GetDepartmentsDapperCommand(request);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
     [HttpPatch("{departmentId:guid}/locations/{locationId:guid}")]
     [ProducesResponseType<Envelope<CreatedObjectGuid>>(201)]
     [ProducesResponseType<Envelope>(500)]

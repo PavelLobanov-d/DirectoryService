@@ -1,4 +1,5 @@
-﻿using DirectoryService.Domain.DepartmentChiefPositions;
+﻿using DirectoryService.Core.Departments;
+using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Infrastructure.PostgreSQL.Converters;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,15 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
             .HasColumnName("deleted_at");
 
         builder.HasQueryFilter(v => v.DeletedAt == null);
+
+        builder.Property<LTree>(DepartmentPathIndex.ShadowPropertyName)
+            .HasColumnName(DepartmentPathIndex.ColumnName)
+            .HasColumnType("ltree")
+            .HasComputedColumnSql(DepartmentPathIndex.ComputedSql, stored: true);
+
+        builder.HasIndex(DepartmentPathIndex.ShadowPropertyName)
+            .HasDatabaseName(DepartmentPathIndex.IndexName)
+            .HasMethod("gist");
 
         builder.HasMany(v => v.Childs)
             .WithOne(v => v.Parent)

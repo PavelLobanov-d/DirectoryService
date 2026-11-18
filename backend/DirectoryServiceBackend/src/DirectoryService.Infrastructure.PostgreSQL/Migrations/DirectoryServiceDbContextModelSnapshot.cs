@@ -20,6 +20,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                 .HasAnnotation("ProductVersion", "9.0.20")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "ltree");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("DirectoryService.Domain.DepartmentChiefPositions.DepartmentChiefPosition", b =>
@@ -117,6 +118,13 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("pathslug");
 
+                    b.Property<string>("PathSlugFullLTree")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("ltree")
+                        .HasColumnName("pathslugfull")
+                        .HasComputedColumnSql("(COALESCE(pathslug::text || '.', '') || slug::text)::ltree", true);
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -127,6 +135,11 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasName("PK_department");
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("PathSlugFullLTree")
+                        .HasDatabaseName("IX_departments_pathslugfull");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("PathSlugFullLTree"), "gist");
 
                     b.ToTable("departments", (string)null);
                 });

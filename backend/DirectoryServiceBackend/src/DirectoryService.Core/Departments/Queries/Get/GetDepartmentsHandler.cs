@@ -42,7 +42,7 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
                 continue;
 
             string cleanKey = keySearch.Key.Trim();
-            string pattern = $"%{EscapeLike(searchValue.ToLowerInvariant().Trim())}%";
+            string pattern = $"%{DepartmentSearch.EscapeLike(searchValue.ToLowerInvariant().Trim())}%";
 
             if (cleanKey.Equals(nameof(Department.Name), StringComparison.OrdinalIgnoreCase))
             {
@@ -57,6 +57,20 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
                     ((string)d.Slug).ToLower(),
                     pattern,
                     "\\"));
+            }
+            else if (cleanKey.Equals("path", StringComparison.OrdinalIgnoreCase))
+            {
+                string path = searchValue.Trim().ToLowerInvariant();
+                if (!DepartmentSearch.IsValidPath(path))
+                {
+                    query = query.Where(_ => false);
+                    continue;
+                }
+
+                LTree ltreePath = new(path);
+                query = query.Where(d =>
+                    EF.Property<LTree>(d, DepartmentPathIndex.ShadowPropertyName)
+                        .IsDescendantOf(ltreePath));
             }
             else
             {
@@ -154,10 +168,4 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
 
         return new GetDepartmentsResponse(items, totalCount);
     }
-
-    private static string EscapeLike(string value) =>
-        value
-            .Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("%", "\\%", StringComparison.Ordinal)
-            .Replace("_", "\\_", StringComparison.Ordinal);
 }

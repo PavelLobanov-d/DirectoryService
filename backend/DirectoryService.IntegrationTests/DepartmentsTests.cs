@@ -87,6 +87,89 @@ public sealed class DepartmentsTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task FilterDepartments_ByFullPath_ReturnsSubtree()
+    {
+        Guid rootPositionId = await CreatePositionAsync("Director", "director");
+        Guid childPositionId = await CreatePositionAsync("Manager", "manager", rootPositionId);
+        Guid locationId = await CreateLocationAsync("Path Office", "Path street 1");
+
+        Guid parentDepartmentId = await CreateDepartmentAsync(
+            "Path Parent",
+            "pathparent",
+            rootPositionId,
+            locationsId: locationId);
+        Guid childDepartmentId = await CreateDepartmentAsync(
+            "Path Child",
+            "pathchild",
+            childPositionId,
+            parentDepartmentId,
+            locationId);
+
+        HttpResponseMessage parentResponse = await Client.GetAsync("/departments?search=path%3Dpathparent");
+        ApiEnvelope<GetDepartmentsResponse> parentEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentsResponse>(parentResponse);
+
+        Assert.Equal(HttpStatusCode.OK, parentResponse.StatusCode);
+        Assert.NotNull(parentEnvelope.Result);
+        Assert.Equal(2L, parentEnvelope.Result.TotalCount);
+        Assert.Contains(parentEnvelope.Result.Items, item => item.Id == parentDepartmentId);
+        Assert.Contains(parentEnvelope.Result.Items, item => item.Id == childDepartmentId);
+
+        HttpResponseMessage childResponse =
+            await Client.GetAsync("/departments?search=path%3Dpathparent.pathchild");
+        ApiEnvelope<GetDepartmentsResponse> childEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentsResponse>(childResponse);
+
+        Assert.Equal(HttpStatusCode.OK, childResponse.StatusCode);
+        Assert.NotNull(childEnvelope.Result);
+        Assert.Equal(1L, childEnvelope.Result.TotalCount);
+        Assert.Single(childEnvelope.Result.Items);
+        Assert.Equal(childDepartmentId, childEnvelope.Result.Items[0].Id);
+    }
+
+    [Fact]
+    public async Task FilterDepartments_DapperByFullPath_ReturnsSubtree()
+    {
+        Guid rootPositionId = await CreatePositionAsync("Director", "director");
+        Guid childPositionId = await CreatePositionAsync("Manager", "manager", rootPositionId);
+        Guid locationId = await CreateLocationAsync("Dapper Office", "Dapper street 1");
+
+        Guid parentDepartmentId = await CreateDepartmentAsync(
+            "Dapper Parent",
+            "dapperparent",
+            rootPositionId,
+            locationsId: locationId);
+        Guid childDepartmentId = await CreateDepartmentAsync(
+            "Dapper Child",
+            "dapperchild",
+            childPositionId,
+            parentDepartmentId,
+            locationId);
+
+        HttpResponseMessage parentResponse =
+            await Client.GetAsync("/departments/dapper?search=path%3Ddapperparent");
+        ApiEnvelope<GetDepartmentsResponse> parentEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentsResponse>(parentResponse);
+
+        Assert.Equal(HttpStatusCode.OK, parentResponse.StatusCode);
+        Assert.NotNull(parentEnvelope.Result);
+        Assert.Equal(2L, parentEnvelope.Result.TotalCount);
+        Assert.Contains(parentEnvelope.Result.Items, item => item.Id == parentDepartmentId);
+        Assert.Contains(parentEnvelope.Result.Items, item => item.Id == childDepartmentId);
+
+        HttpResponseMessage childResponse =
+            await Client.GetAsync("/departments/dapper?search=path%3Ddapperparent.dapperchild");
+        ApiEnvelope<GetDepartmentsResponse> childEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentsResponse>(childResponse);
+
+        Assert.Equal(HttpStatusCode.OK, childResponse.StatusCode);
+        Assert.NotNull(childEnvelope.Result);
+        Assert.Equal(1L, childEnvelope.Result.TotalCount);
+        Assert.Single(childEnvelope.Result.Items);
+        Assert.Equal(childDepartmentId, childEnvelope.Result.Items[0].Id);
+    }
+
+    [Fact]
     public async Task DeleteDepartment_MissingId_ReturnsNotFound()
     {
         HttpResponseMessage response = await Client.DeleteAsync($"/departments/{Guid.NewGuid()}");
