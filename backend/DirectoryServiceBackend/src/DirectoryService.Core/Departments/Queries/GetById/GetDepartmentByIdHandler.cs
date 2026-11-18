@@ -32,8 +32,7 @@ public class GetDepartmentByIdHandler : ICommandHandler<GetDepartmentResponse?, 
             {
                 d.Id,
                 ChiefPositionId = d.DepartmentChiefPosition.PositionMatrixId,
-                d.PathSlug,
-                d.Slug,
+                d.Path,
                 d.Name,
                 d.ParentId,
                 ChildsIds = d.Childs.Select(c => c.Id).ToList(),
@@ -49,14 +48,10 @@ public class GetDepartmentByIdHandler : ICommandHandler<GetDepartmentResponse?, 
             return GeneralErrors.NotFound(command.DepartmentId, "Department").ToErrors();
         }
 
-        PathSlug pathSlugFull = row.PathSlug is null
-            ? PathSlug.Create(row.Slug).Value
-            : row.PathSlug.CreateChild(row.Slug).Value;
-
         return new GetDepartmentResponse(
             row.Id.Value,
             row.ChiefPositionId.Value,
-            pathSlugFull.Value,
+            row.Path,
             row.Name.Value,
             row.ParentId?.Value,
             row.ChildsIds.Select(c => c.Value).ToList(),

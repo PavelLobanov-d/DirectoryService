@@ -66,6 +66,8 @@ public class DirectoryServiceDbContext : DbContext, IDirectoryServiceDbContext, 
     public DbSet<Statistica> Statistics => Set<Statistica>();
 
     public IQueryable<Department> DepartmentsRead => Set<Department>().AsQueryable().AsNoTracking();
+    public IQueryable<Department> DepartmentsFromSql(FormattableString sql) =>
+        Set<Department>().FromSql(sql).AsNoTracking();
     public IQueryable<Location> LocationsRead => Set<Location>().AsQueryable().AsNoTracking();
     public IQueryable<DepartmentLocation> DepartmentLocationsRead => Set<DepartmentLocation>().AsQueryable().AsNoTracking();
     public IQueryable<PositionMatrix> PositionsRead => Set<PositionMatrix>().AsQueryable().AsNoTracking();

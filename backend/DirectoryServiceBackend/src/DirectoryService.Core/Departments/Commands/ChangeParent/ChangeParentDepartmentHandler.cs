@@ -104,7 +104,7 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
 
         await using var transactionScope = transactionScopeResult.Value;
 
-        var storeDepartmentPathSlug = department.PathSlug;
+        var storeDepartmentPathSlug = department.Path;
         var storeDepartmentParentId = department.ParentId?.Value ;
 
         if (department.Move(departmentParent))
@@ -132,7 +132,7 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
                 typeof(Department).Name,
                 Statistica.Level.FINE,
                 Statistica.Action.ATTACH,
-                $"Присоединён к {departmentParent.PathSlugFull}",
+                $"Присоединён к {departmentParent.Path}",
                 departmentParent.Id.Value,
                 typeof(Department).Name,
                 cancellationToken).ConfigureAwait(false);

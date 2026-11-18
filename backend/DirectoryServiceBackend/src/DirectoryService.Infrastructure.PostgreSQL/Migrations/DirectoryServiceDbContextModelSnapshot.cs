@@ -113,17 +113,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parentid");
 
-                    b.Property<string>("PathSlug")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("pathslug");
-
-                    b.Property<string>("PathSlugFullLTree")
+                    b.Property<string>("Path")
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("ltree")
-                        .HasColumnName("pathslugfull")
-                        .HasComputedColumnSql("(COALESCE(pathslug::text || '.', '') || slug::text)::ltree", true);
+                        .HasColumnName("path");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -136,10 +129,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.HasIndex("PathSlugFullLTree")
-                        .HasDatabaseName("IX_departments_pathslugfull");
+                    b.HasIndex("Path")
+                        .HasDatabaseName("IX_departments_path");
 
-                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("PathSlugFullLTree"), "gist");
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Path"), "gist");
 
                     b.ToTable("departments", (string)null);
                 });

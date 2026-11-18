@@ -88,7 +88,7 @@ public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCom
         bool result = false;
         DepartmentName? newName = null;
         Slug? newSlug = null;
-        PathSlug? newPathSlug = null;
+        bool parentPathChanged = false;
 
         if (departmentDto != null)
         {
@@ -166,9 +166,10 @@ public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCom
                     return GeneralErrors.NotFound(department.ParentId.Value, "Department").ToErrors();
                 }
             }
-            if (department.PathSlug != department.Parent?.PathSlugFull)
+            if (department.Parent is not null
+                && department.Path != department.Parent.Path + "." + department.Slug.Value)
             {
-                newPathSlug = department.Parent?.PathSlugFull;
+                parentPathChanged = true;
             }
         }
         //потомки
@@ -202,7 +203,7 @@ public class UpdateDepartmentHandler : ICommandHandler<bool, UpdateDepartmentCom
         }
 
         //обновляем потомков
-        if ((newSlug != null || newPathSlug != null) && department.Childs.Count > 0)
+        if ((newSlug != null || parentPathChanged) && department.Childs.Count > 0)
         {
             foreach (Department child in department.Childs)
             {

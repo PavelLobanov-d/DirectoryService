@@ -30,12 +30,6 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
             .HasColumnName("slug")
             .IsRequired();
 
-        builder.Property(v => v.PathSlug)
-            .HasConversion<PathSlugConverter>()
-            .HasMaxLength(100)
-            .HasColumnName("pathslug")
-            .IsRequired(false);
-
         builder.Property(v => v.ParentId)
             .HasConversion<DepartmentIdConverter>()
             .HasColumnName("parentid")
@@ -46,12 +40,13 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
 
         builder.HasQueryFilter(v => v.DeletedAt == null);
 
-        builder.Property<LTree>(DepartmentPathIndex.ShadowPropertyName)
-            .HasColumnName(DepartmentPathIndex.ColumnName)
+        builder.Property(v => v.Path)
+            .HasConversion<DepartmentPathLTreeConverter>()
             .HasColumnType("ltree")
-            .HasComputedColumnSql(DepartmentPathIndex.ComputedSql, stored: true);
+            .HasColumnName(DepartmentPathIndex.ColumnName)
+            .IsRequired();
 
-        builder.HasIndex(DepartmentPathIndex.ShadowPropertyName)
+        builder.HasIndex(v => v.Path)
             .HasDatabaseName(DepartmentPathIndex.IndexName)
             .HasMethod("gist");
 

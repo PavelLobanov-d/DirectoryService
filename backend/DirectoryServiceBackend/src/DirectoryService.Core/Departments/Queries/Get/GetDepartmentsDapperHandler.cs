@@ -72,7 +72,7 @@ public class GetDepartmentsDapperHandler : ICommandHandler<GetDepartmentsRespons
                     WITH RECURSIVE subtree AS (
                         SELECT anchor.id
                         FROM departments anchor
-                        WHERE anchor.pathslugfull = @path::ltree
+                        WHERE anchor.path = @path::ltree
                           AND anchor.deleted_at IS NULL
                         UNION ALL
                         SELECT child.id
@@ -113,7 +113,7 @@ public class GetDepartmentsDapperHandler : ICommandHandler<GetDepartmentsRespons
             SELECT
                 d.id,
                 d.name,
-                d.pathslugfull::text AS pathslugfull,
+                d.path::text AS path,
                 d.parentid,
                 dcp.positionmatrix_id AS chiefpositionid,
                 ARRAY(SELECT c.id FROM departments c WHERE c.parentid = d.id AND c.deleted_at IS NULL) AS childsids,
@@ -144,7 +144,7 @@ public class GetDepartmentsDapperHandler : ICommandHandler<GetDepartmentsRespons
             .Select(row => new GetDepartmentResponse(
                 row.Id,
                 row.ChiefPositionId,
-                row.PathSlugFull,
+                row.Path,
                 row.Name,
                 row.ParentId,
                 row.ChildsIds?.ToList() ?? [],
@@ -197,7 +197,7 @@ public class GetDepartmentsDapperHandler : ICommandHandler<GetDepartmentsRespons
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;
-        public string PathSlugFull { get; set; } = null!;
+        public string Path { get; set; } = null!;
         public Guid? ParentId { get; set; }
         public Guid? ChiefPositionId { get; set; }
         public Guid[]? ChildsIds { get; set; }
