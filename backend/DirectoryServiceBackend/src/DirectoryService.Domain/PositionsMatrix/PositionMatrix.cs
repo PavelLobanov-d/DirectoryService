@@ -9,7 +9,7 @@ namespace DirectoryService.Domain.PositionsMatrix;
 /// <summary>
 /// определяет матричную должность и структуру подчинения. Применяется ко всем департаментам
 /// </summary>
-public sealed class PositionMatrix
+public sealed class PositionMatrix : ISoftDeletable
 {
     private PositionMatrix() { }
     private PositionMatrix(
@@ -27,6 +27,14 @@ public sealed class PositionMatrix
     }
 
     public PositionMatrixId Id { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
+    public bool IsDeleted => DeletedAt.HasValue;
+
+    public void SoftDelete()
+    {
+        DeletedAt ??= DateTime.UtcNow;
+    }
+
     /// <summary>
     /// название должности
     /// </summary>

@@ -118,10 +118,11 @@ public class PositionMatrixDeleteHandler : ICommandHandler<bool, PositionMatrixD
             }
         }
 
-        var result = await _positionMatrixRepository.DeleteAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
+        positionMatrix.SoftDelete();
+        var result = await _positionMatrixRepository.UpdateAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
         {
-            _logger.LogError("Error _positionMatrixRepository.DeleteAsync");
+            _logger.LogError("Error soft deleting PositionMatrix");
             var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
             if (rollbackResult.IsFailure)
                 return rollbackResult.Error.ToErrors();

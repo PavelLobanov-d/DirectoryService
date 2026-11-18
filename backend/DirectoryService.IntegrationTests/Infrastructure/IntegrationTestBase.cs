@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using DirectoryService.Contracts.Departments;
@@ -24,7 +24,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await Fixture.ResetDatabaseAsync();
+        await Fixture.ResetDatabaseAsync().ConfigureAwait(false);
         Client = Fixture.Factory.CreateClient();
     }
 
@@ -44,11 +44,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
             name,
             slug,
             parentPositionMatrixId,
-        });
+        }).ConfigureAwait(false);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response);
+        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response).ConfigureAwait(false);
         Assert.False(envelope.IsError);
         Assert.NotEqual(Guid.Empty, envelope.Result!.Value);
 
@@ -61,11 +61,11 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         {
             name,
             address,
-        });
+        }).ConfigureAwait(false);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response);
+        ApiEnvelope<Guid?> envelope = await ReadEnvelopeAsync<Guid?>(response).ConfigureAwait(false);
         Assert.False(envelope.IsError);
         Assert.NotEqual(Guid.Empty, envelope.Result!.Value);
 
@@ -86,7 +86,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
             parentDepartmentId,
             chiefPositionMatrixId,
             locationsId,
-        });
+        }).ConfigureAwait(false);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
@@ -100,7 +100,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected static async Task<ApiEnvelope<T>> ReadEnvelopeAsync<T>(HttpResponseMessage response)
     {
         ApiEnvelope<T>? envelope = await response.Content
-            .ReadFromJsonAsync<ApiEnvelope<T>>(JsonOptions);
+            .ReadFromJsonAsync<ApiEnvelope<T>>(JsonOptions).ConfigureAwait(false);
 
         Assert.NotNull(envelope);
         return envelope;
@@ -109,25 +109,39 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     protected async Task<long> CountRowsAsync(string table, string idColumn, Guid id)
     {
         await using var connection = new NpgsqlConnection(Fixture.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync().ConfigureAwait(false);
 
         await using var command = new NpgsqlCommand(
             $"SELECT count(*) FROM {table} WHERE {idColumn} = @id",
             connection);
         command.Parameters.AddWithValue("id", id);
 
-        object? result = await command.ExecuteScalarAsync();
+        object? result = await command.ExecuteScalarAsync().ConfigureAwait(false);
         return (long)result!;
     }
 
     protected async Task<long> CountRowsAsync(string table)
     {
         await using var connection = new NpgsqlConnection(Fixture.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync().ConfigureAwait(false);
 
         await using var command = new NpgsqlCommand($"SELECT count(*) FROM {table}", connection);
-        object? result = await command.ExecuteScalarAsync();
+        object? result = await command.ExecuteScalarAsync().ConfigureAwait(false);
         return (long)result!;
+    }
+
+    protected async Task<bool> IsSoftDeletedAsync(string table, string idColumn, Guid id)
+    {
+        await using var connection = new NpgsqlConnection(Fixture.ConnectionString);
+        await connection.OpenAsync().ConfigureAwait(false);
+
+        await using var command = new NpgsqlCommand(
+            $"SELECT deleted_at IS NOT NULL FROM {table} WHERE {idColumn} = @id",
+            connection);
+        command.Parameters.AddWithValue("id", id);
+
+        object? result = await command.ExecuteScalarAsync().ConfigureAwait(false);
+        return result is true;
     }
 }
 

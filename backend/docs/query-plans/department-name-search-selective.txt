@@ -1,0 +1,38 @@
+﻿=== BEFORE: без IX_departments_name_trgm ===
+BEGIN
+DROP INDEX
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=356.82..356.83 rows=1 width=8) (actual time=6.063..6.064 rows=1 loops=1)
+   Buffers: shared hit=190
+   ->  Seq Scan on departments  (cost=0.00..356.81 rows=1 width=0) (actual time=0.152..6.049 rows=111 loops=1)
+         Filter: ((deleted_at IS NULL) AND (lower((name)::text) ~~ '%aab aaj%'::text))
+         Rows Removed by Filter: 11010
+         Buffers: shared hit=190
+ Planning:
+   Buffers: shared hit=158
+ Planning Time: 1.246 ms
+ Execution Time: 6.102 ms
+(10 rows)
+
+ROLLBACK
+
+=== AFTER: с IX_departments_name_trgm ===
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=32.03..32.04 rows=1 width=8) (actual time=0.690..0.691 rows=1 loops=1)
+   Buffers: shared hit=72
+   ->  Bitmap Heap Scan on departments  (cost=28.01..32.02 rows=1 width=0) (actual time=0.501..0.681 rows=111 loops=1)
+         Recheck Cond: ((lower((name)::text) ~~ '%aab aaj%'::text) AND (deleted_at IS NULL))
+         Rows Removed by Index Recheck: 111
+         Heap Blocks: exact=53
+         Buffers: shared hit=72
+         ->  Bitmap Index Scan on "IX_departments_name_trgm"  (cost=0.00..28.01 rows=1 width=0) (actual time=0.486..0.486 rows=222 loops=1)
+               Index Cond: (lower((name)::text) ~~ '%aab aaj%'::text)
+               Buffers: shared hit=19
+ Planning:
+   Buffers: shared hit=197
+ Planning Time: 1.697 ms
+ Execution Time: 0.776 ms
+(14 rows)
+

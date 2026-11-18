@@ -1,8 +1,9 @@
 ﻿using DirectoryService.Domain.DepartmentLocations;
+using DirectoryService.Domain.shared;
 
 namespace DirectoryService.Domain.Locations;
 
-public sealed class Location
+public sealed class Location : ISoftDeletable
 {
     private Location() { }
     private Location(
@@ -18,6 +19,13 @@ public sealed class Location
     public LocationName Name { get; private set; } = null!;
     public Address Address { get; private set; } = null!;
     public DateTime CreatedAt { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
+    public bool IsDeleted => DeletedAt.HasValue;
+
+    public void SoftDelete()
+    {
+        DeletedAt ??= DateTime.UtcNow;
+    }
 
     private readonly List<DepartmentLocation> _departmentLocations = [];
     public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;

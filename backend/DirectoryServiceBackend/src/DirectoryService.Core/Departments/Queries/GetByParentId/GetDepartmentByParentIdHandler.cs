@@ -44,8 +44,7 @@ public class GetDepartmentByParentIdHandler : ICommandHandler<List<GetDepartment
             {
                 d.Id,
                 ChiefPositionId = d.DepartmentChiefPosition.PositionMatrixId,
-                d.PathSlug,
-                d.Slug,
+                d.Path,
                 d.Name,
                 d.ParentId,
                 ChildsIds = d.Childs.Select(c => c.Id).ToList(),
@@ -56,22 +55,15 @@ public class GetDepartmentByParentIdHandler : ICommandHandler<List<GetDepartment
             .ConfigureAwait(false);
 
         return rows
-            .Select(row =>
-            {
-                PathSlug pathSlugFull = row.PathSlug is null
-                    ? PathSlug.Create(row.Slug).Value
-                    : row.PathSlug.CreateChild(row.Slug).Value;
-
-                return new GetDepartmentResponse(
+            .Select(row => new GetDepartmentResponse(
                     row.Id.Value,
                     row.ChiefPositionId.Value,
-                    pathSlugFull.Value,
+                    row.Path,
                     row.Name.Value,
                     row.ParentId?.Value,
                     row.ChildsIds.Select(c => c.Value).ToList(),
                     row.LocationsIds.Select(l => l.Value).ToList(),
-                    row.PositionsIds.Select(p => p.Value).ToList());
-            })
+                    row.PositionsIds.Select(p => p.Value).ToList()))
             .ToList();
     }
 }

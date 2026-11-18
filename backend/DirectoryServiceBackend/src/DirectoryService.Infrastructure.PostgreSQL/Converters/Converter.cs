@@ -6,6 +6,7 @@ using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Converters;
@@ -128,6 +129,15 @@ public class PathSlugConverter : ValueConverter<PathSlug, string>
             return result.Value;
         }
         throw new InvalidOperationException($"Ошибка загрузки PathSlug из базы данных: {result.Error}");
+    }
+}
+
+public class DepartmentPathLTreeConverter : ValueConverter<string, LTree>
+{
+    public DepartmentPathLTreeConverter() : base(
+        path => new LTree(path),
+        ltree => (string)ltree)
+    {
     }
 }
 

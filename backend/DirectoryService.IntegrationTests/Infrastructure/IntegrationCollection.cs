@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 
 namespace DirectoryService.IntegrationTests.Infrastructure;
 
@@ -7,4 +7,3 @@ public sealed class IntegrationCollection : ICollectionFixture<IntegrationTestFi
 {
     public const string Name = "integration";
 }
-

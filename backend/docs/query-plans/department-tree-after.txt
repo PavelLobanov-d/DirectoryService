@@ -1,0 +1,357 @@
+﻿Timing is off.
+=== 1. tree roots ===
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=597.17..597.20 rows=13 width=81) (actual time=0.176..0.178 rows=13 loops=1)
+   Sort Key: d.name, d.id
+   Sort Method: quicksort  Memory: 26kB
+   Buffers: shared hit=85
+   ->  Bitmap Heap Scan on departments d  (cost=4.39..596.93 rows=13 width=81) (actual time=0.033..0.127 rows=13 loops=1)
+         Recheck Cond: (parentid IS NULL)
+         Filter: (deleted_at IS NULL)
+         Heap Blocks: exact=1
+         Buffers: shared hit=79
+         ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..4.38 rows=13 width=0) (actual time=0.007..0.007 rows=13 loops=1)
+               Index Cond: (parentid IS NULL)
+               Buffers: shared hit=2
+         SubPlan 1
+           ->  Index Scan using "IX_departments_parentid" on departments child  (cost=0.29..44.46 rows=10 width=0) (actual time=0.003..0.003 rows=1 loops=13)
+                 Index Cond: (parentid = d.id)
+                 Filter: (deleted_at IS NULL)
+                 Buffers: shared hit=37
+         SubPlan 3
+           ->  Aggregate  (cost=37.63..37.64 rows=1 width=4) (actual time=0.004..0.004 rows=1 loops=13)
+                 Buffers: shared hit=39
+                 ->  Bitmap Heap Scan on departments child_1  (cost=4.36..37.61 rows=10 width=0) (actual time=0.002..0.003 rows=8 loops=13)
+                       Recheck Cond: (parentid = d.id)
+                       Filter: (deleted_at IS NULL)
+                       Heap Blocks: exact=13
+                       Buffers: shared hit=39
+                       ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..4.36 rows=10 width=0) (actual time=0.001..0.001 rows=8 loops=13)
+                             Index Cond: (parentid = d.id)
+                             Buffers: shared hit=26
+ Planning:
+   Buffers: shared hit=230
+ Planning Time: 1.336 ms
+ Execution Time: 0.313 ms
+(32 rows)
+
+=== 2. direct children ===
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=461.32..461.35 rows=10 width=81) (actual time=0.185..0.187 rows=10 loops=1)
+   Sort Key: d.name, d.id
+   Sort Method: quicksort  Memory: 26kB
+   Buffers: shared hit=64
+   ->  Bitmap Heap Scan on departments d  (cost=4.36..461.16 rows=10 width=81) (actual time=0.036..0.173 rows=10 loops=1)
+         Recheck Cond: (parentid = '4ac0c7e5-0a1e-4967-a413-d4cfcc27c635'::uuid)
+         Filter: (deleted_at IS NULL)
+         Heap Blocks: exact=1
+         Buffers: shared hit=64
+         ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..4.36 rows=10 width=0) (actual time=0.009..0.009 rows=10 loops=1)
+               Index Cond: (parentid = '4ac0c7e5-0a1e-4967-a413-d4cfcc27c635'::uuid)
+               Buffers: shared hit=2
+         SubPlan 1
+           ->  Index Scan using "IX_departments_parentid" on departments child  (cost=0.29..44.46 rows=10 width=0) (actual time=0.004..0.004 rows=1 loops=10)
+                 Index Cond: (parentid = d.id)
+                 Filter: (deleted_at IS NULL)
+                 Buffers: shared hit=30
+         SubPlan 3
+           ->  Aggregate  (cost=37.63..37.64 rows=1 width=4) (actual time=0.007..0.007 rows=1 loops=10)
+                 Buffers: shared hit=31
+                 ->  Bitmap Heap Scan on departments child_1  (cost=4.36..37.61 rows=10 width=0) (actual time=0.003..0.004 rows=10 loops=10)
+                       Recheck Cond: (parentid = d.id)
+                       Filter: (deleted_at IS NULL)
+                       Heap Blocks: exact=11
+                       Buffers: shared hit=31
+                       ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..4.36 rows=10 width=0) (actual time=0.001..0.001 rows=10 loops=10)
+                             Index Cond: (parentid = d.id)
+                             Buffers: shared hit=20
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.164 ms
+ Execution Time: 0.217 ms
+(32 rows)
+
+=== 3. ancestors ===
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=194.68..194.96 rows=111 width=80) (actual time=0.263..0.266 rows=3 loops=1)
+   Sort Key: (nlevel(a.path)), a.id
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=12
+   InitPlan 1 (returns $0)
+     ->  Index Scan using "PK_department" on departments  (cost=0.29..8.30 rows=1 width=36) (actual time=0.046..0.049 rows=1 loops=1)
+           Index Cond: (id = '77f357b6-34b3-4fa0-8ce0-f27e561b6fe4'::uuid)
+           Filter: (deleted_at IS NULL)
+           Buffers: shared hit=3
+   ->  Bitmap Heap Scan on departments a  (cost=9.14..182.61 rows=111 width=80) (actual time=0.152..0.168 rows=3 loops=1)
+         Recheck Cond: (path @> $0)
+         Filter: ((deleted_at IS NULL) AND (id <> '77f357b6-34b3-4fa0-8ce0-f27e561b6fe4'::uuid))
+         Rows Removed by Filter: 1
+         Heap Blocks: exact=3
+         Buffers: shared hit=9
+         ->  Bitmap Index Scan on "IX_departments_path"  (cost=0.00..9.11 rows=111 width=0) (actual time=0.091..0.091 rows=4 loops=1)
+               Index Cond: (path @> $0)
+               Buffers: shared hit=6
+ Planning:
+   Buffers: shared hit=16
+ Planning Time: 0.158 ms
+ Execution Time: 0.602 ms
+(22 rows)
+
+=== 4. tree search with ancestors ===
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=80.05..305.60 rows=1 width=117) (actual time=19.260..21.662 rows=50 loops=1)
+   Buffers: shared hit=829
+   ->  Result  (cost=80.05..305.60 rows=1 width=117) (actual time=19.259..21.652 rows=50 loops=1)
+         Buffers: shared hit=829
+         ->  Sort  (cost=80.05..80.05 rows=1 width=116) (actual time=19.125..19.131 rows=50 loops=1)
+               Sort Key: (nlevel(m.path)), m.name, m.id
+               Sort Method: top-N heapsort  Memory: 36kB
+               Buffers: shared hit=244
+               ->  Bitmap Heap Scan on departments m  (cost=76.01..80.04 rows=1 width=116) (actual time=3.331..12.305 rows=10000 loops=1)
+                     Recheck Cond: ((lower((name)::text) ~~ '%bulk level three%'::text) AND (deleted_at IS NULL))
+                     Heap Blocks: exact=173
+                     Buffers: shared hit=244
+                     ->  Bitmap Index Scan on "IX_departments_name_trgm"  (cost=0.00..76.01 rows=1 width=0) (actual time=3.295..3.296 rows=10000 loops=1)
+                           Index Cond: (lower((name)::text) ~~ '%bulk level three%'::text)
+                           Buffers: shared hit=71
+         SubPlan 1
+           ->  Index Scan using "IX_departments_parentid" on departments child  (cost=0.29..44.46 rows=10 width=0) (actual time=0.002..0.002 rows=0 loops=50)
+                 Index Cond: (parentid = m.id)
+                 Filter: (deleted_at IS NULL)
+                 Buffers: shared hit=100
+         SubPlan 3
+           ->  Aggregate  (cost=37.63..37.64 rows=1 width=4) (actual time=0.002..0.002 rows=1 loops=50)
+                 Buffers: shared hit=100
+                 ->  Bitmap Heap Scan on departments child_1  (cost=4.36..37.61 rows=10 width=0) (actual time=0.001..0.001 rows=0 loops=50)
+                       Recheck Cond: (parentid = m.id)
+                       Filter: (deleted_at IS NULL)
+                       Buffers: shared hit=100
+                       ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..4.36 rows=10 width=0) (actual time=0.001..0.001 rows=0 loops=50)
+                             Index Cond: (parentid = m.id)
+                             Buffers: shared hit=100
+         SubPlan 4
+           ->  Aggregate  (cost=183.17..183.18 rows=1 width=32) (actual time=0.043..0.043 rows=1 loops=50)
+                 Buffers: shared hit=385
+                 ->  Bitmap Heap Scan on departments a  (cost=9.14..181.22 rows=111 width=76) (actual time=0.026..0.029 rows=3 loops=50)
+                       Recheck Cond: (path @> m.path)
+                       Filter: ((deleted_at IS NULL) AND (id <> m.id))
+                       Rows Removed by Filter: 1
+                       Heap Blocks: exact=184
+                       Buffers: shared hit=385
+                       ->  Bitmap Index Scan on "IX_departments_path"  (cost=0.00..9.11 rows=111 width=0) (actual time=0.025..0.025 rows=4 loops=50)
+                             Index Cond: (path @> m.path)
+                             Buffers: shared hit=201
+ Planning:
+   Buffers: shared hit=26
+ Planning Time: 1.362 ms
+ Execution Time: 21.821 ms
+(46 rows)
+
+=== 5. default list page ===
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.29..2.40 rows=20 width=92) (actual time=0.017..0.038 rows=20 loops=1)
+   Buffers: shared hit=22
+   ->  Index Scan using "PK_department" on departments d  (cost=0.29..1179.09 rows=11121 width=92) (actual time=0.016..0.036 rows=20 loops=1)
+         Filter: (deleted_at IS NULL)
+         Buffers: shared hit=22
+ Planning:
+   Buffers: shared hit=1
+ Planning Time: 0.089 ms
+ Execution Time: 0.050 ms
+(9 rows)
+
+=== 6. list by path, EF handler ===
+                                                                                            QUERY PLAN                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1194.57..1197.55 rows=1194 width=204) (actual time=2.797..2.809 rows=174 loops=1)
+   Sort Key: d.id, d1.department_id, d3.id, d4.id
+   Sort Method: quicksort  Memory: 71kB
+   Buffers: shared hit=670
+   ->  Nested Loop Left Join  (cost=199.66..1133.54 rows=1194 width=204) (actual time=0.624..2.669 rows=174 loops=1)
+         Buffers: shared hit=670
+         ->  Nested Loop Left Join  (cost=199.36..792.23 rows=398 width=172) (actual time=0.615..2.522 rows=58 loops=1)
+               Buffers: shared hit=610
+               ->  Hash Right Join  (cost=199.06..543.96 rows=199 width=140) (actual time=0.599..2.375 rows=29 loops=1)
+                     Hash Cond: (d3.parentid = d.id)
+                     Buffers: shared hit=550
+                     ->  Seq Scan on departments d3  (cost=0.00..301.21 rows=11121 width=32) (actual time=0.005..1.256 rows=11121 loops=1)
+                           Filter: (deleted_at IS NULL)
+                           Buffers: shared hit=190
+                     ->  Hash  (cost=198.81..198.81 rows=20 width=124) (actual time=0.321..0.322 rows=20 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 12kB
+                           Buffers: shared hit=360
+                           ->  Nested Loop Left Join  (cost=0.86..198.81 rows=20 width=124) (actual time=0.036..0.314 rows=20 loops=1)
+                                 Buffers: shared hit=360
+                                 ->  Limit  (cost=0.57..48.56 rows=20 width=92) (actual time=0.024..0.250 rows=20 loops=1)
+                                       Buffers: shared hit=300
+                                       ->  Merge Join  (cost=0.57..2426.42 rows=1011 width=92) (actual time=0.023..0.247 rows=20 loops=1)
+                                             Merge Cond: (d.id = departments.id)
+                                             Buffers: shared hit=300
+                                             ->  Index Scan using "PK_department" on departments d  (cost=0.29..1179.09 rows=11121 width=92) (actual time=0.007..0.093 rows=149 loops=1)
+                                                   Filter: (deleted_at IS NULL)
+                                                   Buffers: shared hit=150
+                                             ->  Index Scan using "PK_department" on departments  (cost=0.29..1206.89 rows=1011 width=16) (actual time=0.011..0.136 rows=20 loops=1)
+                                                   Filter: ((deleted_at IS NULL) AND (path <@ 'aaa'::ltree))
+                                                   Rows Removed by Filter: 129
+                                                   Buffers: shared hit=150
+                                 ->  Index Scan using "PK_department_chiefpositions" on department_chiefpositions d1  (cost=0.29..7.50 rows=1 width=32) (actual time=0.003..0.003 rows=1 loops=20)
+                                       Index Cond: (department_id = d.id)
+                                       Buffers: shared hit=60
+               ->  Memoize  (cost=0.30..11.53 rows=2 width=48) (actual time=0.004..0.004 rows=2 loops=29)
+                     Cache Key: d.id
+                     Cache Mode: logical
+                     Hits: 9  Misses: 20  Evictions: 0  Overflows: 0  Memory Usage: 5kB
+                     Buffers: shared hit=60
+                     ->  Index Scan using "UX_department_positions_department_position" on department_positions d5  (cost=0.29..11.52 rows=2 width=48) (actual time=0.004..0.004 rows=2 loops=20)
+                           Index Cond: (department_id = d.id)
+                           Buffers: shared hit=60
+         ->  Memoize  (cost=0.30..15.35 rows=3 width=48) (actual time=0.001..0.002 rows=3 loops=58)
+               Cache Key: d.id
+               Cache Mode: logical
+               Hits: 38  Misses: 20  Evictions: 0  Overflows: 0  Memory Usage: 7kB
+               Buffers: shared hit=60
+               ->  Index Scan using "UX_department_locations_department_location" on department_locations d4  (cost=0.29..15.34 rows=3 width=48) (actual time=0.003..0.004 rows=3 loops=20)
+                     Index Cond: (department_id = d.id)
+                     Buffers: shared hit=60
+ Planning:
+   Buffers: shared hit=231
+ Planning Time: 1.711 ms
+ Execution Time: 2.861 ms
+(54 rows)
+
+=== 7. list by path, Dapper page ===
+                                                                                         QUERY PLAN                                                                                         
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=3149.33..4106.08 rows=20 width=200) (actual time=5.054..5.397 rows=20 loops=1)
+   Buffers: shared hit=3580
+   CTE subtree
+     ->  Recursive Union  (cost=0.28..3116.59 rows=1001 width=16) (actual time=0.023..3.845 rows=1111 loops=1)
+           Buffers: shared hit=3238
+           ->  Index Scan using "IX_departments_path" on departments anchor  (cost=0.28..8.29 rows=1 width=16) (actual time=0.023..0.023 rows=1 loops=1)
+                 Index Cond: (path = 'aaa'::ltree)
+                 Filter: (deleted_at IS NULL)
+                 Buffers: shared hit=4
+           ->  Nested Loop  (cost=3.56..308.83 rows=100 width=16) (actual time=0.504..0.913 rows=278 loops=4)
+                 Buffers: shared hit=3234
+                 ->  WorkTable Scan on subtree parent  (cost=0.00..0.20 rows=10 width=16) (actual time=0.000..0.024 rows=278 loops=4)
+                 ->  Bitmap Heap Scan on departments child  (cost=3.56..30.76 rows=10 width=32) (actual time=0.002..0.003 rows=1 loops=1111)
+                       Recheck Cond: (parentid = parent.id)
+                       Filter: (deleted_at IS NULL)
+                       Heap Blocks: exact=1012
+                       Buffers: shared hit=3234
+                       ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..3.56 rows=10 width=0) (actual time=0.001..0.001 rows=1 loops=1111)
+                             Index Cond: (parentid = parent.id)
+                             Buffers: shared hit=2222
+   ->  Nested Loop Left Join  (cost=32.74..47918.01 rows=1001 width=200) (actual time=5.053..5.390 rows=20 loops=1)
+         Buffers: shared hit=3580
+         ->  Merge Join  (cost=32.45..1242.06 rows=1001 width=92) (actual time=5.010..5.178 rows=20 loops=1)
+               Merge Cond: (d.id = subtree.id)
+               Buffers: shared hit=3388
+               ->  Index Scan using "PK_department" on departments d  (cost=0.29..1179.09 rows=11121 width=92) (actual time=0.007..0.168 rows=149 loops=1)
+                     Filter: (deleted_at IS NULL)
+                     Buffers: shared hit=150
+               ->  Sort  (cost=32.17..32.67 rows=200 width=16) (actual time=4.986..4.989 rows=20 loops=1)
+                     Sort Key: subtree.id
+                     Sort Method: quicksort  Memory: 101kB
+                     Buffers: shared hit=3238
+                     ->  HashAggregate  (cost=22.52..24.52 rows=200 width=16) (actual time=4.570..4.725 rows=1111 loops=1)
+                           Group Key: subtree.id
+                           Batches: 1  Memory Usage: 145kB
+                           Buffers: shared hit=3238
+                           ->  CTE Scan on subtree  (cost=0.00..20.02 rows=1001 width=16) (actual time=0.024..4.169 rows=1111 loops=1)
+                                 Buffers: shared hit=3238
+         ->  Index Scan using "PK_department_chiefpositions" on department_chiefpositions dcp  (cost=0.29..0.35 rows=1 width=32) (actual time=0.002..0.002 rows=1 loops=20)
+               Index Cond: (department_id = d.id)
+               Buffers: shared hit=60
+         SubPlan 2
+           ->  Bitmap Heap Scan on departments c  (cost=4.36..37.61 rows=10 width=16) (actual time=0.001..0.002 rows=0 loops=20)
+                 Recheck Cond: (parentid = d.id)
+                 Filter: (deleted_at IS NULL)
+                 Heap Blocks: exact=10
+                 Buffers: shared hit=50
+                 ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..4.36 rows=10 width=0) (actual time=0.001..0.001 rows=0 loops=20)
+                       Index Cond: (parentid = d.id)
+                       Buffers: shared hit=40
+         SubPlan 3
+           ->  Index Only Scan using "UX_department_locations_department_location" on department_locations dl  (cost=0.29..4.34 rows=3 width=16) (actual time=0.002..0.002 rows=3 loops=20)
+                 Index Cond: (department_id = d.id)
+                 Heap Fetches: 0
+                 Buffers: shared hit=41
+         SubPlan 4
+           ->  Index Only Scan using "UX_department_positions_department_position" on department_positions dp  (cost=0.29..4.32 rows=2 width=16) (actual time=0.001..0.001 rows=2 loops=20)
+                 Index Cond: (department_id = d.id)
+                 Heap Fetches: 0
+                 Buffers: shared hit=41
+ Planning:
+   Buffers: shared hit=19
+ Planning Time: 0.428 ms
+ Execution Time: 5.527 ms
+(64 rows)
+
+=== 8. list by path, Dapper count ===
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=3487.66..3487.67 rows=1 width=8) (actual time=6.521..6.525 rows=1 loops=1)
+   Buffers: shared hit=3428
+   CTE subtree
+     ->  Recursive Union  (cost=0.28..3116.59 rows=1001 width=16) (actual time=0.017..2.770 rows=1111 loops=1)
+           Buffers: shared hit=3238
+           ->  Index Scan using "IX_departments_path" on departments anchor  (cost=0.28..8.29 rows=1 width=16) (actual time=0.016..0.017 rows=1 loops=1)
+                 Index Cond: (path = 'aaa'::ltree)
+                 Filter: (deleted_at IS NULL)
+                 Buffers: shared hit=4
+           ->  Nested Loop  (cost=3.56..308.83 rows=100 width=16) (actual time=0.372..0.651 rows=278 loops=4)
+                 Buffers: shared hit=3234
+                 ->  WorkTable Scan on subtree parent  (cost=0.00..0.20 rows=10 width=16) (actual time=0.000..0.014 rows=278 loops=4)
+                 ->  Bitmap Heap Scan on departments child  (cost=3.56..30.76 rows=10 width=32) (actual time=0.001..0.002 rows=1 loops=1111)
+                       Recheck Cond: (parentid = parent.id)
+                       Filter: (deleted_at IS NULL)
+                       Heap Blocks: exact=1012
+                       Buffers: shared hit=3234
+                       ->  Bitmap Index Scan on "IX_departments_parentid"  (cost=0.00..3.56 rows=10 width=0) (actual time=0.001..0.001 rows=1 loops=1111)
+                             Index Cond: (parentid = parent.id)
+                             Buffers: shared hit=2222
+   ->  Hash Join  (cost=27.02..368.56 rows=1001 width=0) (actual time=3.546..6.465 rows=1111 loops=1)
+         Hash Cond: (d.id = subtree.id)
+         Buffers: shared hit=3428
+         ->  Seq Scan on departments d  (cost=0.00..301.21 rows=11121 width=16) (actual time=0.006..1.481 rows=11121 loops=1)
+               Filter: (deleted_at IS NULL)
+               Buffers: shared hit=190
+         ->  Hash  (cost=24.52..24.52 rows=200 width=16) (actual time=3.533..3.534 rows=1111 loops=1)
+               Buckets: 2048 (originally 1024)  Batches: 1 (originally 1)  Memory Usage: 69kB
+               Buffers: shared hit=3238
+               ->  HashAggregate  (cost=22.52..24.52 rows=200 width=16) (actual time=3.310..3.409 rows=1111 loops=1)
+                     Group Key: subtree.id
+                     Batches: 1  Memory Usage: 145kB
+                     Buffers: shared hit=3238
+                     ->  CTE Scan on subtree  (cost=0.00..20.02 rows=1001 width=16) (actual time=0.018..3.019 rows=1111 loops=1)
+                           Buffers: shared hit=3238
+ Planning:
+   Buffers: shared hit=3
+ Planning Time: 0.292 ms
+ Execution Time: 6.582 ms
+(39 rows)
+
+=== 9. name filter count ===
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=80.03..80.04 rows=1 width=8) (actual time=9.516..9.518 rows=1 loops=1)
+   Buffers: shared hit=244
+   ->  Bitmap Heap Scan on departments d  (cost=76.01..80.02 rows=1 width=0) (actual time=3.453..8.985 rows=10000 loops=1)
+         Recheck Cond: ((lower((name)::text) ~~ '%bulk level three%'::text) AND (deleted_at IS NULL))
+         Heap Blocks: exact=173
+         Buffers: shared hit=244
+         ->  Bitmap Index Scan on "IX_departments_name_trgm"  (cost=0.00..76.01 rows=1 width=0) (actual time=3.421..3.422 rows=10000 loops=1)
+               Index Cond: (lower((name)::text) ~~ '%bulk level three%'::text)
+               Buffers: shared hit=71
+ Planning:
+   Buffers: shared hit=4
+ Planning Time: 0.114 ms
+ Execution Time: 9.546 ms
+(13 rows)
+

@@ -10,39 +10,13 @@ using DirectoryService.Domain.Statistics;
 
 namespace DirectoryService.Domain.Departments;
 
-public sealed class Department
+public sealed class Department : ISoftDeletable
 {
-    private Department(
-        DepartmentId id,
-        DepartmentName name,
-        Slug slug,
-        DepartmentId? parentId,
-        PathSlug pathSlug,
-        IEnumerable<DepartmentPosition>? departmentPositions,
-        IEnumerable<DepartmentLocation>? departmentLocations)
-    {
-        Id = id;
-        Name = name;
-        Slug = slug;
-        ParentId = parentId;
-        PathSlug = pathSlug;
-        _departmentPositions = departmentPositions?.ToList();
-        _departmentLocations = departmentLocations?.ToList();
-    }
     public DepartmentId Id { get; private set; }
     public DepartmentName Name { get; private set; }
     public Slug Slug { get; private set; }
-    public PathSlug? PathSlug { get; private set; } = null;
-    public PathSlug PathSlugFull
-    {
-        get
-        {
-            var result = PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
-            if (result.IsFailure)
-                throw new InvalidOperationException("Не удалось создать PathSlugFull.");
-            return result.Value;
-        }
-    }
+    public string Path { get; private set; } = string.Empty;
+    public int Depth => Path.Count(c => c == '.');
 
     public DepartmentId? ParentId { get; private set; }
     private Department? _parent = null;
@@ -69,6 +43,12 @@ public sealed class Department
     public IReadOnlyList<DepartmentPosition> DepartmentPositions => _departmentPositions;
     private readonly List<DepartmentLocation> _departmentLocations = [];
     public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;
+    public DateTime? DeletedAt { get; private set; }
+    public bool IsDeleted => DeletedAt.HasValue;
+    public void SoftDelete()
+    {
+        DeletedAt ??= DateTime.UtcNow;
+    }
 
     private Department() { }
     private Department(DepartmentId id, DepartmentName name, Slug slug, Department? parent, DepartmentChiefPosition chiefDepartmentPosition)
@@ -76,7 +56,7 @@ public sealed class Department
         Id = id;
         Name = name;
         Slug = slug;
-        PathSlug = parent?.PathSlugFull;
+        Path = parent is null ? slug.Value : parent.Path + "." + slug.Value;
         ParentId = parent?.Id;
         _parent = parent;
         _childs = [];
@@ -231,7 +211,7 @@ public sealed class Department
         if (newParent != null)
         {
             ParentId = newParent.Id;
-            PathSlug = newParent.PathSlugFull;
+            Path = newParent.Path + "." + Slug.Value;
             result = true;
         }
         Department? oldParent = _parent;
@@ -248,7 +228,6 @@ public sealed class Department
     /// </summary>
     /// <param name="newName"></param>
     /// <param name="newSlug"></param>
-    /// <param name="newPathSlug"></param>
     /// <param name="newChiefPositionMatrix"></param>
     /// <returns>true, если были изменения</returns>
     public bool Update(
@@ -266,19 +245,19 @@ public sealed class Department
         {
             DepartmentChiefPosition = newDepartmentChiefPosition;
         }
-        if ((newSlug != null && newSlug != Slug) || (this.Parent != null && this.Parent.PathSlugFull != PathSlug))
+        bool slugChanged = newSlug != null && newSlug != Slug;
+        bool parentPathChanged = Parent != null
+            && Path != Parent.Path + "." + Slug.Value;
+
+        if (slugChanged)
         {
-            if (newSlug != null && newSlug != Slug)
-            {
-                Slug = newSlug;
-                result = true;
-            }
-            if (Childs != null && Childs.Select(child =>
-            {
-                bool v = child.refresh();
-                return v;
-            }).Contains(true))
-                result = true;
+            Slug = newSlug!;
+            result = true;
+        }
+
+        if ((slugChanged || parentPathChanged) && refresh())
+        {
+            result = true;
         }
 
         return result;
@@ -295,9 +274,11 @@ public sealed class Department
         if (_parent != null)
         {
             ParentId = _parent.Id;
-            if (PathSlug != _parent.PathSlugFull)
+
+            string expectedPath = _parent.Path + "." + Slug.Value;
+            if (Path != expectedPath)
             {
-                PathSlug = _parent.PathSlugFull;
+                Path = expectedPath;
                 result = true;
             }
         }
@@ -306,7 +287,12 @@ public sealed class Department
             if (ParentId != null)
                 result = true;
             ParentId = null;
-            PathSlug = null;
+
+            if (Path != Slug.Value)
+            {
+                Path = Slug.Value;
+                result = true;
+            }
         }
 
         if (Childs != null && Childs.Select(child =>

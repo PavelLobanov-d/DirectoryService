@@ -1,4 +1,4 @@
-using DirectoryService.Infrastructure.PostgreSQL;
+﻿using DirectoryService.Infrastructure.PostgreSQL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
