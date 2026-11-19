@@ -28,11 +28,11 @@ internal class PositionMatrixConfiguration : IEntityTypeConfiguration<PositionMa
             .HasColumnName("slug")
             .IsRequired();
 
-        builder.Property(v => v.PathSlug)
-            .HasConversion<PathSlugConverter>()
-            .HasMaxLength(100)
-            .HasColumnName("pathslug")
-            .IsRequired(false);
+        builder.Property(v => v.Path)
+            .HasConversion<PathSlugLTreeConverter>()
+            .HasColumnType("ltree")
+            .HasColumnName("path")
+            .IsRequired();
 
         builder.Property(v => v.ParentId)
             .HasConversion<PositionMatrixIdConverter>()

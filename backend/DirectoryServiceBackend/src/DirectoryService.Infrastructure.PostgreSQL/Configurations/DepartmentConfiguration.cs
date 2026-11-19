@@ -41,7 +41,7 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
         builder.HasQueryFilter(v => v.DeletedAt == null);
 
         builder.Property(v => v.Path)
-            .HasConversion<DepartmentPathLTreeConverter>()
+            .HasConversion<PathSlugLTreeConverter>()
             .HasColumnType("ltree")
             .HasColumnName(DepartmentPathIndex.ColumnName)
             .IsRequired();

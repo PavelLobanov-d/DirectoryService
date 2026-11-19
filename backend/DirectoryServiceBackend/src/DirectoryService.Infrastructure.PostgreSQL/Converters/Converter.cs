@@ -116,6 +116,22 @@ public class SlugConverter : ValueConverter<Slug, string>
     }
 }
 
+public class PathSlugLTreeConverter : ValueConverter<PathSlug, LTree>
+{
+    public PathSlugLTreeConverter() : base(
+        path => new LTree(path.Value),
+        ltree => UnwrapResult(PathSlug.Create((string)ltree)))
+    { }
+    private static PathSlug UnwrapResult(Result<PathSlug, Error> result)
+    {
+        if (result.IsSuccess)
+        {
+            return result.Value;
+        }
+        throw new InvalidOperationException($"Ошибка разбора PathSlug из базы данных: {result.Error}");
+    }
+}
+
 public class PathSlugConverter : ValueConverter<PathSlug, string>
 {
     public PathSlugConverter() : base(
@@ -132,9 +148,9 @@ public class PathSlugConverter : ValueConverter<PathSlug, string>
     }
 }
 
-public class DepartmentPathLTreeConverter : ValueConverter<string, LTree>
+public class PathLTreeConverter : ValueConverter<string, LTree>
 {
-    public DepartmentPathLTreeConverter() : base(
+    public PathLTreeConverter() : base(
         path => new LTree(path),
         ltree => (string)ltree)
     {

@@ -170,6 +170,37 @@ public sealed class DepartmentsTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task CreateDepartment_WithDigitSlug_AllowsPathSearch()
+    {
+        Guid chiefId = await CreatePositionAsync("Director", "director");
+        Guid locationId = await CreateLocationAsync("Digit Office", "Digit street 2");
+
+        Guid departmentId = await CreateDepartmentAsync(
+            "Digit Department",
+            "digitdept2",
+            chiefId,
+            locationsId: locationId);
+
+        HttpResponseMessage getResponse = await Client.GetAsync($"/departments/{departmentId}");
+        ApiEnvelope<GetDepartmentResponse> getEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentResponse>(getResponse);
+
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        Assert.NotNull(getEnvelope.Result);
+        Assert.Equal("digitdept2", getEnvelope.Result.Path);
+
+        HttpResponseMessage listResponse =
+            await Client.GetAsync("/departments?search=path%3Ddigitdept2");
+        ApiEnvelope<GetDepartmentsResponse> listEnvelope =
+            await ReadEnvelopeAsync<GetDepartmentsResponse>(listResponse);
+
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        Assert.NotNull(listEnvelope.Result);
+        Assert.Equal(1L, listEnvelope.Result.TotalCount);
+        Assert.Equal(departmentId, listEnvelope.Result.Items[0].Id);
+    }
+
+    [Fact]
     public async Task DeleteDepartment_MissingId_ReturnsNotFound()
     {
         HttpResponseMessage response = await Client.DeleteAsync($"/departments/{Guid.NewGuid()}");

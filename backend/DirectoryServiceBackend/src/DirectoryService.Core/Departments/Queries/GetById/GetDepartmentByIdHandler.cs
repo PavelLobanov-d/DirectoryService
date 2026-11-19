@@ -51,7 +51,7 @@ public class GetDepartmentByIdHandler : ICommandHandler<GetDepartmentResponse?, 
         return new GetDepartmentResponse(
             row.Id.Value,
             row.ChiefPositionId.Value,
-            row.Path,
+            row.Path.Value,
             row.Name.Value,
             row.ParentId?.Value,
             row.ChildsIds.Select(c => c.Value).ToList(),

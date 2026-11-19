@@ -190,10 +190,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parentid");
 
-                    b.Property<string>("PathSlug")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("pathslug");
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("ltree")
+                        .HasColumnName("path");
 
                     b.Property<string>("Slug")
                         .IsRequired()

@@ -15,6 +15,6 @@ public static partial class DepartmentSearch
             .Replace("%", "\\%", StringComparison.Ordinal)
             .Replace("_", "\\_", StringComparison.Ordinal);
 
-    [GeneratedRegex("^[a-z]+(\\.[a-z]+)*$", options: RegexOptions.NonBacktracking)]
+    [GeneratedRegex("^[a-z0-9]+(\\.[a-z0-9]+)*$", options: RegexOptions.NonBacktracking)]
     private static partial Regex PathRegex();
 }

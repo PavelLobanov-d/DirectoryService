@@ -149,7 +149,7 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
             .Select(row => new GetDepartmentResponse(
                     row.Id.Value,
                     row.ChiefPositionId?.Value,
-                    row.Path,
+                    row.Path.Value,
                     row.Name.Value,
                     row.ParentId?.Value,
                     row.ChildsIds.Select(c => c.Value).ToList(),

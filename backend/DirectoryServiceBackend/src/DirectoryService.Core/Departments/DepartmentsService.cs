@@ -430,7 +430,7 @@ public class DepartmentsService : IDepartmentsService
                 }
             }
             if (department.Parent is not null
-                && department.Path != department.Parent.Path + "." + department.Slug.Value)
+                && department.Path != department.Parent.Path.CreateChild(department.Slug).Value)
             {
                 parentPathChanged = true;
             }

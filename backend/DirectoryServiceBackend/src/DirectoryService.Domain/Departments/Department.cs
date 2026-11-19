@@ -15,8 +15,8 @@ public sealed class Department : ISoftDeletable
     public DepartmentId Id { get; private set; }
     public DepartmentName Name { get; private set; }
     public Slug Slug { get; private set; }
-    public string Path { get; private set; } = string.Empty;
-    public int Depth => Path.Count(c => c == '.');
+    public PathSlug Path { get; private set; } = null!;
+    public int Depth => Path.Value.Count(c => c == '.');
 
     public DepartmentId? ParentId { get; private set; }
     private Department? _parent = null;
@@ -56,7 +56,7 @@ public sealed class Department : ISoftDeletable
         Id = id;
         Name = name;
         Slug = slug;
-        Path = parent is null ? slug.Value : parent.Path + "." + slug.Value;
+        Path = parent is null ? PathSlug.Create(slug).Value : parent.Path.CreateChild(slug).Value;
         ParentId = parent?.Id;
         _parent = parent;
         _childs = [];
@@ -211,7 +211,7 @@ public sealed class Department : ISoftDeletable
         if (newParent != null)
         {
             ParentId = newParent.Id;
-            Path = newParent.Path + "." + Slug.Value;
+            Path = newParent.Path.CreateChild(Slug).Value;
             result = true;
         }
         Department? oldParent = _parent;
@@ -247,7 +247,7 @@ public sealed class Department : ISoftDeletable
         }
         bool slugChanged = newSlug != null && newSlug != Slug;
         bool parentPathChanged = Parent != null
-            && Path != Parent.Path + "." + Slug.Value;
+            && Path != Parent.Path.CreateChild(Slug).Value;
 
         if (slugChanged)
         {
@@ -275,7 +275,7 @@ public sealed class Department : ISoftDeletable
         {
             ParentId = _parent.Id;
 
-            string expectedPath = _parent.Path + "." + Slug.Value;
+            PathSlug expectedPath = _parent.Path.CreateChild(Slug).Value;
             if (Path != expectedPath)
             {
                 Path = expectedPath;
@@ -288,9 +288,10 @@ public sealed class Department : ISoftDeletable
                 result = true;
             ParentId = null;
 
-            if (Path != Slug.Value)
+            PathSlug rootPath = PathSlug.Create(Slug).Value;
+            if (Path != rootPath)
             {
-                Path = Slug.Value;
+                Path = rootPath;
                 result = true;
             }
         }
