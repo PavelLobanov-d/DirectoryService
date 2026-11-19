@@ -125,6 +125,12 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("slug");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
                     b.HasKey("Id")
                         .HasName("PK_department");
 

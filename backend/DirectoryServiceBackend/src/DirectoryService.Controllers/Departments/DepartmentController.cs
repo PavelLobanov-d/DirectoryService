@@ -175,6 +175,22 @@ public class DepartmentController : ControllerBase
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
+    [HttpPut("{departmentId:guid}/parent")]
+    [ProducesResponseType<Envelope<ChangeDepartmentParentResponse>>(200)]
+    [ProducesResponseType<Envelope>(400)]
+    [ProducesResponseType<Envelope>(404)]
+    [ProducesResponseType<Envelope>(409)]
+    [ProducesResponseType<Envelope>(500)]
+    public async Task<EndPointResult<ChangeDepartmentParentResponse>> ChangeParentAsync(
+        [FromServices] ICommandHandler<ChangeDepartmentParentResponse, ChangeDepartmentParentCommand> handler,
+        [FromRoute] Guid departmentId,
+        [FromBody] ChangeDepartmentParentDto? request,
+        CancellationToken cancellationToken)
+    {
+        var command = new ChangeDepartmentParentCommand(departmentId, request?.ParentId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
     [HttpDelete("{departmentId:guid}")]
     [ProducesResponseType<Envelope<List<Department>>>(200)]
     [ProducesResponseType<Envelope>(500)]

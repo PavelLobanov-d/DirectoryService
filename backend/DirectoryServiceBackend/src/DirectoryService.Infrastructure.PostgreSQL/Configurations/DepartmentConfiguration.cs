@@ -38,6 +38,11 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
         builder.Property(v => v.DeletedAt)
             .HasColumnName("deleted_at");
 
+        builder.Property(v => v.UpdatedAt)
+            .HasColumnName("updated_at")
+            .HasDefaultValueSql("now()")
+            .IsRequired();
+
         builder.HasQueryFilter(v => v.DeletedAt == null);
 
         builder.Property(v => v.Path)

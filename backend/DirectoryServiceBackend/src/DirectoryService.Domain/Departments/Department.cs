@@ -44,10 +44,12 @@ public sealed class Department : ISoftDeletable
     private readonly List<DepartmentLocation> _departmentLocations = [];
     public IReadOnlyList<DepartmentLocation> DepartmentLocations => _departmentLocations;
     public DateTime? DeletedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
     public bool IsDeleted => DeletedAt.HasValue;
     public void SoftDelete()
     {
         DeletedAt ??= DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     private Department() { }
@@ -63,6 +65,7 @@ public sealed class Department : ISoftDeletable
         DepartmentChiefPosition = chiefDepartmentPosition;
         _departmentPositions = [];
         _departmentLocations = [];
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public static Department Create(
@@ -221,6 +224,8 @@ public sealed class Department : ISoftDeletable
             result = true;
         if(this.refresh())
             result = true;
+        if (result)
+            UpdatedAt = DateTime.UtcNow;
         return result;
     }
     /// <summary>
@@ -259,6 +264,9 @@ public sealed class Department : ISoftDeletable
         {
             result = true;
         }
+
+        if (result)
+            UpdatedAt = DateTime.UtcNow;
 
         return result;
     }
