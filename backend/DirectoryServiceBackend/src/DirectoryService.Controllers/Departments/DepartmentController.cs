@@ -14,6 +14,7 @@ using DirectoryService.Core.Departments.Commands.Update;
 using DirectoryService.Core.Departments.Queries.Get;
 using DirectoryService.Core.Departments.Queries.GetById;
 using DirectoryService.Core.Departments.Queries.GetByParentId;
+using DirectoryService.Core.Departments.Queries.Tree;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
@@ -49,6 +50,19 @@ public class DepartmentController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new GetDepartmentCommand(request);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpGet("dapper")]
+    [ProducesResponseType<Envelope<GetDepartmentsResponse>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    [ProducesResponseType<Envelope>(400)]
+    public async Task<EndPointResult<GetDepartmentsResponse>> GetDapperAsync(
+        [FromServices] ICommandHandler<GetDepartmentsResponse, GetDepartmentsDapperCommand> handler,
+        [FromQuery] SelectDto request,
+        CancellationToken cancellationToken)
+    {
+        var command = new GetDepartmentsDapperCommand(request);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
@@ -96,15 +110,52 @@ public class DepartmentController : ControllerBase
     }
 
     [HttpGet("{departmentId:guid}/children")]
-    [ProducesResponseType<Envelope<List<GetDepartmentResponse>>>(200)]
+    [ProducesResponseType<Envelope<List<DepartmentTreeItemResponse>>>(200)]
     [ProducesResponseType<Envelope>(500)]
     [ProducesResponseType<Envelope>(404)]
-    public async Task<EndPointResult<List<GetDepartmentResponse>>> GetChildrenAsync(
-        [FromServices] ICommandHandler<List<GetDepartmentResponse>, GetDepartmentByParentIdCommand> handler,
+    public async Task<EndPointResult<List<DepartmentTreeItemResponse>>> GetChildrenAsync(
+        [FromServices] ICommandHandler<List<DepartmentTreeItemResponse>, GetDepartmentChildrenCommand> handler,
         [FromRoute] Guid departmentId,
         CancellationToken cancellationToken)
     {
-        var command = new GetDepartmentByParentIdCommand(departmentId);
+        var command = new GetDepartmentChildrenCommand(departmentId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpGet("{departmentId:guid}/ancestors")]
+    [ProducesResponseType<Envelope<List<DepartmentAncestorResponse>>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    [ProducesResponseType<Envelope>(404)]
+    public async Task<EndPointResult<List<DepartmentAncestorResponse>>> GetAncestorsAsync(
+        [FromServices] ICommandHandler<List<DepartmentAncestorResponse>, GetDepartmentAncestorsCommand> handler,
+        [FromRoute] Guid departmentId,
+        CancellationToken cancellationToken)
+    {
+        var command = new GetDepartmentAncestorsCommand(departmentId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpGet("tree")]
+    [ProducesResponseType<Envelope<List<DepartmentTreeItemResponse>>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    public async Task<EndPointResult<List<DepartmentTreeItemResponse>>> GetTreeAsync(
+        [FromServices] ICommandHandler<List<DepartmentTreeItemResponse>, GetDepartmentTreeCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        return await handler.ExecuteAsync(new GetDepartmentTreeCommand(), cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    [HttpGet("tree/search")]
+    [ProducesResponseType<Envelope<List<DepartmentTreeSearchItemResponse>>>(200)]
+    [ProducesResponseType<Envelope>(500)]
+    [ProducesResponseType<Envelope>(400)]
+    public async Task<EndPointResult<List<DepartmentTreeSearchItemResponse>>> SearchTreeAsync(
+        [FromServices] ICommandHandler<List<DepartmentTreeSearchItemResponse>, SearchDepartmentTreeCommand> handler,
+        [FromQuery] string? q,
+        CancellationToken cancellationToken)
+    {
+        var command = new SearchDepartmentTreeCommand(q ?? string.Empty);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 
@@ -121,6 +172,22 @@ public class DepartmentController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new UpdateDepartmentCommand(departmentId, request);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpPut("{departmentId:guid}/parent")]
+    [ProducesResponseType<Envelope<ChangeDepartmentParentResponse>>(200)]
+    [ProducesResponseType<Envelope>(400)]
+    [ProducesResponseType<Envelope>(404)]
+    [ProducesResponseType<Envelope>(409)]
+    [ProducesResponseType<Envelope>(500)]
+    public async Task<EndPointResult<ChangeDepartmentParentResponse>> ChangeParentAsync(
+        [FromServices] ICommandHandler<ChangeDepartmentParentResponse, ChangeDepartmentParentCommand> handler,
+        [FromRoute] Guid departmentId,
+        [FromBody] ChangeDepartmentParentDto? request,
+        CancellationToken cancellationToken)
+    {
+        var command = new ChangeDepartmentParentCommand(departmentId, request?.ParentId);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 

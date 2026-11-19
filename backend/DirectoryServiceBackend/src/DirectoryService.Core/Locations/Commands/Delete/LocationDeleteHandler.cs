@@ -84,10 +84,11 @@ public class LocationDeleteHandler : ICommandHandler<bool, LocationDeleteCommand
             }
         }
 
-        var result = await _locationsRepository.DeleteAsync(location, cancellationToken).ConfigureAwait(false);
+        location.SoftDelete();
+        var result = await _locationsRepository.UpdateAsync(location, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
         {
-            _logger.LogError("Error deleting record of Location");
+            _logger.LogError("Error soft deleting record of Location");
             var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
             if (rollbackResult.IsFailure)
                 return rollbackResult.Error.ToErrors();

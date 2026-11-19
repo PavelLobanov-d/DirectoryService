@@ -1,4 +1,4 @@
-using DirectoryService.Core.Database;
+﻿using DirectoryService.Core.Database;
 using DirectoryService.Infrastructure.PostgreSQL;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using Microsoft.AspNetCore.Hosting;
@@ -34,4 +34,3 @@ public sealed class DirectoryServiceApiFactory : WebApplicationFactory<Program>
         });
     }
 }
-

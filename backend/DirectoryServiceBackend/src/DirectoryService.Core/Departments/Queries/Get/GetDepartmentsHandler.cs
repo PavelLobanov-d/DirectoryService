@@ -42,7 +42,7 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
                 continue;
 
             string cleanKey = keySearch.Key.Trim();
-            string pattern = $"%{EscapeLike(searchValue.ToLowerInvariant().Trim())}%";
+            string pattern = $"%{DepartmentSearch.EscapeLike(searchValue.ToLowerInvariant().Trim())}%";
 
             if (cleanKey.Equals(nameof(Department.Name), StringComparison.OrdinalIgnoreCase))
             {
@@ -57,6 +57,19 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
                     ((string)d.Slug).ToLower(),
                     pattern,
                     "\\"));
+            }
+            else if (cleanKey.Equals("path", StringComparison.OrdinalIgnoreCase))
+            {
+                string path = searchValue.Trim().ToLowerInvariant();
+                if (!DepartmentSearch.IsValidPath(path))
+                {
+                    query = query.Where(_ => false);
+                    continue;
+                }
+
+                IQueryable<Department> subtree = _readDbContext.DepartmentsFromSql(
+                    $"SELECT * FROM departments WHERE path <@ {path}::ltree");
+                query = query.Where(d => subtree.Any(s => s.Id == d.Id));
             }
             else
             {
@@ -122,8 +135,7 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
                 ChiefPositionId = d.DepartmentChiefPosition != null
                     ? d.DepartmentChiefPosition.PositionMatrixId
                     : null,
-                d.PathSlug,
-                d.Slug,
+                d.Path,
                 d.Name,
                 d.ParentId,
                 ChildsIds = d.Childs.Select(c => c.Id).ToList(),
@@ -134,30 +146,17 @@ public class GetDepartmentsHandler : ICommandHandler<GetDepartmentsResponse, Get
             .ConfigureAwait(false);
 
         var items = rows
-            .Select(row =>
-            {
-                PathSlug pathSlugFull = row.PathSlug is null
-                    ? PathSlug.Create(row.Slug).Value
-                    : row.PathSlug.CreateChild(row.Slug).Value;
-
-                return new GetDepartmentResponse(
+            .Select(row => new GetDepartmentResponse(
                     row.Id.Value,
                     row.ChiefPositionId?.Value,
-                    pathSlugFull.Value,
+                    row.Path.Value,
                     row.Name.Value,
                     row.ParentId?.Value,
                     row.ChildsIds.Select(c => c.Value).ToList(),
                     row.LocationsIds.Select(l => l.Value).ToList(),
-                    row.PositionsIds.Select(p => p.Value).ToList());
-            })
+                    row.PositionsIds.Select(p => p.Value).ToList()))
             .ToList();
 
         return new GetDepartmentsResponse(items, totalCount);
     }
-
-    private static string EscapeLike(string value) =>
-        value
-            .Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("%", "\\%", StringComparison.Ordinal)
-            .Replace("_", "\\_", StringComparison.Ordinal);
 }

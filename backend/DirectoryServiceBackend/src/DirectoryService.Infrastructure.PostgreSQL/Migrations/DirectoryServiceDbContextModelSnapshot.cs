@@ -20,6 +20,8 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                 .HasAnnotation("ProductVersion", "9.0.20")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "ltree");
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("DirectoryService.Domain.DepartmentChiefPositions.DepartmentChiefPosition", b =>
@@ -98,6 +100,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -108,10 +114,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parentid");
 
-                    b.Property<string>("PathSlug")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("pathslug");
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("ltree")
+                        .HasColumnName("path");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -119,10 +125,21 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("slug");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
                     b.HasKey("Id")
                         .HasName("PK_department");
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("Path")
+                        .HasDatabaseName("IX_departments_path");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Path"), "gist");
 
                     b.ToTable("departments", (string)null);
                 });
@@ -143,6 +160,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -161,6 +182,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deleted_at");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -171,10 +196,10 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("parentid");
 
-                    b.Property<string>("PathSlug")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("pathslug");
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("ltree")
+                        .HasColumnName("path");
 
                     b.Property<string>("Slug")
                         .IsRequired()

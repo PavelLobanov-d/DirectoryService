@@ -35,7 +35,8 @@ public class LocationGetHandler : ICommandHandler<PagedResult<LocationListItemDt
                    count(dl.id)::int AS department_count
             FROM locations AS l
             LEFT JOIN department_locations AS dl ON dl.location_id = l.id
-            WHERE (@searchPattern IS NULL OR l.name ILIKE @searchPattern ESCAPE '\')
+            WHERE l.deleted_at IS NULL
+              AND (@searchPattern IS NULL OR l.name ILIKE @searchPattern ESCAPE '\')
             GROUP BY l.id, l.name, l.address, l.created_at
             HAVING (@minDepartmentCount IS NULL OR count(dl.id) >= @minDepartmentCount)
         )

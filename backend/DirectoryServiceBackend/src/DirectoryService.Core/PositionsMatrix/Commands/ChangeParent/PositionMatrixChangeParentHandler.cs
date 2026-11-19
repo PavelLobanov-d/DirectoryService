@@ -100,7 +100,7 @@ public class PositionMatrixChangeParentHandler : ICommandHandler<bool, PositionM
             return GeneralErrors.AlreadyExist().ToErrors();
         }
 
-        var storePositionPathSlug = position.PathSlug;
+        var storePositionPathSlug = position.Path;
         var storePositionParentId = position.ParentId?.Value;
 
         var transactionScopeResult = await _transactionManager.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
@@ -148,7 +148,7 @@ public class PositionMatrixChangeParentHandler : ICommandHandler<bool, PositionM
                 typeof(PositionMatrix).Name,
                 Statistica.Level.FINE,
                 Statistica.Action.ATTACH,
-                $"Присоединён к {positionParent.PathSlugFull}",
+                $"Присоединён к {positionParent.Path}",
                 positionParent.Id.Value,
                 typeof(PositionMatrix).Name,
                 cancellationToken).ConfigureAwait(false);

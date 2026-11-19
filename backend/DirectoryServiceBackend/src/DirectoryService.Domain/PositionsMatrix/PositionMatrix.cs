@@ -9,24 +9,32 @@ namespace DirectoryService.Domain.PositionsMatrix;
 /// <summary>
 /// определяет матричную должность и структуру подчинения. Применяется ко всем департаментам
 /// </summary>
-public sealed class PositionMatrix
+public sealed class PositionMatrix : ISoftDeletable
 {
     private PositionMatrix() { }
     private PositionMatrix(
         PositionMatrixId id, 
         PositionName name, 
         Slug slug, 
-        PositionMatrixId? parentId, 
-        PathSlug? parentPath)
+        PositionMatrix? parent)
     {
         Id = id;
         Name = name;
         Slug = slug;
-        ParentId = parentId;
-        PathSlug = parentPath;
+        ParentId = parent?.Id;
+        _parent = parent;
+        Path = parent is null ? PathSlug.Create(slug).Value : parent.Path.CreateChild(slug).Value;
     }
 
     public PositionMatrixId Id { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
+    public bool IsDeleted => DeletedAt.HasValue;
+
+    public void SoftDelete()
+    {
+        DeletedAt ??= DateTime.UtcNow;
+    }
+
     /// <summary>
     /// название должности
     /// </summary>
@@ -38,17 +46,7 @@ public sealed class PositionMatrix
     /// <summary>
     /// иерархия родительских Slug'ов
     /// </summary>
-    public PathSlug? PathSlug { get; private set; }
-    public PathSlug PathSlugFull
-    {
-        get
-        {
-            var result = PathSlug == null ? PathSlug.Create(Slug) : PathSlug.CreateChild(Slug);
-            if (result.IsFailure)
-                throw new InvalidOperationException("Не удалось создать PathSlugFull.");
-            return result.Value;
-        }
-    }
+    public PathSlug Path { get; private set; } = null!;
     /// <summary>
     /// вышестоящая должность
     /// </summary>
@@ -90,9 +88,7 @@ public sealed class PositionMatrix
             new PositionMatrixId(Guid.CreateVersion7()), 
             name, 
             slug, 
-            parent?.Id, 
-            parent?.PathSlugFull);
-        newObject._parent = parent;
+            parent);
         if (parent != null)
         {
             parent._childs.Add(newObject);
@@ -158,9 +154,10 @@ public sealed class PositionMatrix
         if (_parent != null)
         {
             ParentId = _parent.Id;
-            if (PathSlug != _parent.PathSlugFull)
+            PathSlug expectedPath = _parent.Path.CreateChild(Slug).Value;
+            if (Path != expectedPath)
             {
-                PathSlug = _parent.PathSlugFull;
+                Path = expectedPath;
                 result = true;
             }
         }
@@ -171,7 +168,12 @@ public sealed class PositionMatrix
                 ParentId = null;
                 result = true;
             }
-            PathSlug = null;
+            PathSlug rootPath = PathSlug.Create(Slug).Value;
+            if (Path != rootPath)
+            {
+                Path = rootPath;
+                result = true;
+            }
         }
 
         if (_childs != null && _childs.Select(child =>
@@ -190,28 +192,22 @@ public sealed class PositionMatrix
     /// <param name="slug"></param>
     /// <returns>true, если были изменения</returns>
     public bool Update(PositionName? name,
-        Slug? slug,
-        PathSlug? pathSlug)
+        Slug? slug)
     {
         bool result = false;
-        if (slug != null && Slug != slug)
+        bool slugChanged = slug != null && Slug != slug;
+        bool parentPathChanged = Parent != null
+            && Path != Parent.Path.CreateChild(Slug).Value;
+
+        if (slugChanged)
         {
-            Slug = slug;
+            Slug = slug!;
             result = true;
         }
-        if (pathSlug != null && PathSlug != pathSlug)
+
+        if ((slugChanged || parentPathChanged) && refresh())
         {
-            PathSlug = pathSlug;
             result = true;
-        }
-        if(result)
-        {
-            if (_childs != null && _childs.Select(child =>
-            {
-                bool v = child.refresh();
-                return v;
-            }).Contains(true))
-                result = true;
         }
 
         if (name != null && Name != name)

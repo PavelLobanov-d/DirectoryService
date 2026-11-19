@@ -1,0 +1,10 @@
+﻿
+
+namespace DirectoryService.Domain.shared;
+
+public interface ISoftDeletable
+{
+    DateTime? DeletedAt { get; }
+    bool IsDeleted { get; }
+    void SoftDelete();
+}

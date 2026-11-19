@@ -6,8 +6,7 @@ public record GetPositionMatrixResponse
 (
     Guid Id,
     string Name,
-    string? PathSlugFull,
+    string Path,
     Guid? ParentId,
-    string? ParentPathSlug,
     List<Guid> ChildsIds
 );
