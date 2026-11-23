@@ -1,15 +1,11 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentLocations;
 using DirectoryService.Core.Locations;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 using System.Transactions;
 

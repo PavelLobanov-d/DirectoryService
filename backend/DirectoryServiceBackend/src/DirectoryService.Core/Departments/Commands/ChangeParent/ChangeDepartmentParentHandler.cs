@@ -1,35 +1,29 @@
-using System.Data;
+﻿using System.Data;
 using CSharpFunctionalExtensions;
 using Dapper;
 using DirectoryService.Contracts.Departments;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace DirectoryService.Core.Departments.Commands.ChangeParent;
 
 public class ChangeDepartmentParentHandler
     : ICommandHandler<ChangeDepartmentParentResponse, ChangeDepartmentParentCommand>
 {
-    private const string DepartmentSql = """
+    // Read Committed достаточно: строки двигаемого узла и нового родителя
+    // блокируются через FOR UPDATE, проверки выполняются после блокировки.
+    private const string LockSql = """
         SELECT id,
                parentid,
                name,
                slug,
                path::text AS path,
-               updated_at AS updatedat
-        FROM departments
-        WHERE id = @departmentId
-          AND deleted_at IS NULL;
-        """;
-
-    private const string ParentSql = """
-        SELECT id,
-               path::text AS path,
+               updated_at AS updatedat,
                deleted_at AS deletedat
         FROM departments
-        WHERE id = @parentId;
+        WHERE id = @id
+        FOR UPDATE;
         """;
 
     private const string ConflictSql = """
@@ -85,19 +79,20 @@ public class ChangeDepartmentParentHandler
         using IDbConnection connection = await _connectionFactory
             .CreateConnectionAsync(cancellationToken)
             .ConfigureAwait(false);
-        using IDbTransaction transaction = connection.BeginTransaction();
+        using IDbTransaction transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
 
         try
         {
-            DepartmentRow? department = await connection
-                .QuerySingleOrDefaultAsync<DepartmentRow>(new CommandDefinition(
-                    DepartmentSql,
-                    new { departmentId = command.DepartmentId },
-                    transaction,
-                    cancellationToken: cancellationToken))
-                .ConfigureAwait(false);
+            IReadOnlyList<LockedDepartmentRow> lockedRows = await LockRowsAsync(
+                connection,
+                transaction,
+                command,
+                cancellationToken).ConfigureAwait(false);
 
-            if (department is null)
+            LockedDepartmentRow? department = lockedRows
+                .SingleOrDefault(row => row.Id == command.DepartmentId);
+
+            if (department is null || department.DeletedAt is not null)
             {
                 transaction.Rollback();
                 return Error.NotFound(
@@ -114,16 +109,10 @@ public class ChangeDepartmentParentHandler
                     "Нельзя переместить подразделение под самого себя").ToErrors();
             }
 
-            ParentRow? parent = null;
+            LockedDepartmentRow? parent = null;
             if (command.ParentId is Guid parentId)
             {
-                parent = await connection
-                    .QuerySingleOrDefaultAsync<ParentRow>(new CommandDefinition(
-                        ParentSql,
-                        new { parentId },
-                        transaction,
-                        cancellationToken: cancellationToken))
-                    .ConfigureAwait(false);
+                parent = lockedRows.SingleOrDefault(row => row.Id == parentId);
 
                 if (parent is null)
                 {
@@ -215,19 +204,68 @@ public class ChangeDepartmentParentHandler
                 moved.Depth,
                 moved.UpdatedAt);
         }
+        catch (PostgresException ex) when (ex.SqlState is "40P01" or "40001" or "55P03")
+        {
+            TryRollback(transaction);
+            _logger.LogWarning(
+                ex,
+                "Concurrent department move conflict for {DepartmentId}",
+                command.DepartmentId);
+            return Error.Conflict(
+                "department.move.conflict",
+                "Конфликт параллельного перемещения. Обновите дерево и повторите запрос").ToErrors();
+        }
+        catch (PostgresException ex) when (ex.SqlState == "23505")
+        {
+            TryRollback(transaction);
+            return GeneralErrors.AlreadyExist().ToErrors();
+        }
         catch (Exception ex)
         {
-            try
-            {
-                transaction.Rollback();
-            }
-            catch (Exception rollbackException)
-            {
-                _logger.LogError(rollbackException, "Failed to rollback department move transaction");
-            }
-
+            TryRollback(transaction);
             _logger.LogError(ex, "Failed to move department {DepartmentId}", command.DepartmentId);
             throw;
+        }
+    }
+
+    private static async Task<IReadOnlyList<LockedDepartmentRow>> LockRowsAsync(
+        IDbConnection connection,
+        IDbTransaction transaction,
+        ChangeDepartmentParentCommand command,
+        CancellationToken cancellationToken)
+    {
+        Guid[] ids = command.ParentId is null || command.ParentId == command.DepartmentId
+            ? [command.DepartmentId]
+            : [command.DepartmentId, command.ParentId.Value];
+
+        List<LockedDepartmentRow> rows = [];
+
+        foreach (Guid id in ids.OrderBy(value => value))
+        {
+            LockedDepartmentRow? row = await connection
+                .QuerySingleOrDefaultAsync<LockedDepartmentRow>(new CommandDefinition(
+                    LockSql,
+                    new { id },
+                    transaction,
+                    cancellationToken: cancellationToken))
+                .ConfigureAwait(false);
+
+            if (row is not null)
+                rows.Add(row);
+        }
+
+        return rows;
+    }
+
+    private static void TryRollback(IDbTransaction transaction)
+    {
+        try
+        {
+            transaction.Rollback();
+        }
+        catch
+        {
+            // Транзакция уже завершена или соединение закрыто.
         }
     }
 
@@ -238,7 +276,7 @@ public class ChangeDepartmentParentHandler
     private static int CountDepth(string path) =>
         path.Count(c => c == '.');
 
-    private sealed class DepartmentRow
+    private sealed class LockedDepartmentRow
     {
         public Guid Id { get; set; }
         public Guid? ParentId { get; set; }
@@ -246,12 +284,6 @@ public class ChangeDepartmentParentHandler
         public string Slug { get; set; } = null!;
         public string Path { get; set; } = null!;
         public DateTime UpdatedAt { get; set; }
-    }
-
-    private sealed class ParentRow
-    {
-        public Guid Id { get; set; }
-        public string Path { get; set; } = null!;
         public DateTime? DeletedAt { get; set; }
     }
 

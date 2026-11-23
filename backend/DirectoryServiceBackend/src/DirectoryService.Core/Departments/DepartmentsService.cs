@@ -1,5 +1,4 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.Core.DepartmentChiefPositions;
@@ -7,7 +6,6 @@ using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Core.Locations;
 using DirectoryService.Core.DepartmentLocations;
 using DirectoryService.Core.PositionsMatrix;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.DepartmentLocations;
@@ -15,11 +13,9 @@ using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Validation;
 using DirectoryService.Core.Departments.Commands.Create;
 using DirectoryService.Core.Departments.Commands.Update;
 

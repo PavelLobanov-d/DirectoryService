@@ -1,13 +1,9 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
 using DirectoryService.Core.DepartmentPositions;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.PositionsMatrix.Commands.Delete;

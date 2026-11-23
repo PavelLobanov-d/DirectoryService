@@ -3,7 +3,6 @@ using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using System.Linq.Expressions;
 
 

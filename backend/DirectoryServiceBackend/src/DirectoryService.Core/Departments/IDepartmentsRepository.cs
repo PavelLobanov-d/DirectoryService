@@ -2,7 +2,6 @@
 using DirectoryService.Contracts;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
-using DirectoryService.Shared;
 using System.Linq.Expressions;
 
 namespace DirectoryService.Core.Departments;

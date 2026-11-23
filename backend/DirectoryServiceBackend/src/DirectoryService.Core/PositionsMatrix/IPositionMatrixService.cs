@@ -1,7 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts.PositionsMatrix;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Shared;
 
 namespace DirectoryService.Core.PositionsMatrix;
 

@@ -2,11 +2,8 @@
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.PositionsMatrix;
 using DirectoryService.Core.PositionsMatrix.Commands.Update;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;

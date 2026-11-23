@@ -1,11 +1,11 @@
-﻿using DirectoryService.Core.Database;
-using DirectoryService.Infrastructure.PostgreSQL;
+﻿using DirectoryService.Infrastructure.PostgreSQL;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Shared.Framework.Data;
 
 namespace DirectoryService.IntegrationTests.Infrastructure;
 

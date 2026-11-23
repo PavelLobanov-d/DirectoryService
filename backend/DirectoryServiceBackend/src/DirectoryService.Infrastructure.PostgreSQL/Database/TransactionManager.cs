@@ -1,5 +1,4 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
 using DirectoryService.Core.Database;
 using Microsoft.Extensions.Logging;
 

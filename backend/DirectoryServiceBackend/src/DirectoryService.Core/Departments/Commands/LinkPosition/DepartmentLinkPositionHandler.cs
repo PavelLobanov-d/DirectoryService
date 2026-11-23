@@ -1,17 +1,13 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
 using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Core.PositionsMatrix;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.Departments.Commands.LinkPosition;

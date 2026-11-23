@@ -1,6 +1,5 @@
 ﻿using DirectoryService.Contracts.Locations;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Core.Validation;
 using FluentValidation;
 using System;
 using System.Collections.Generic;

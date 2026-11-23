@@ -1,9 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts.PositionsMatrix;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 

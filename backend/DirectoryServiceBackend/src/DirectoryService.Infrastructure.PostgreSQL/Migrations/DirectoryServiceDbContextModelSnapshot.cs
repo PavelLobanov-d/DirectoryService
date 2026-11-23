@@ -207,6 +207,12 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("slug");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at")
+                        .HasDefaultValueSql("now()");
+
                     b.HasKey("Id")
                         .HasName("PK_positionmatrix");
 
@@ -215,7 +221,7 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
                     b.ToTable("positionsmatrix", (string)null);
                 });
 
-            modelBuilder.Entity("DirectoryService.Domain.Statistics.Statistica", b =>
+            modelBuilder.Entity("Shared.Kernel.Statistics.Statistica", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -363,3 +369,4 @@ namespace DirectoryService.Infrastructure.PostgreSQL.Migrations
         }
     }
 }
+

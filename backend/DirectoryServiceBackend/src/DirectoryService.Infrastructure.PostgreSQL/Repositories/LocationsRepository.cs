@@ -3,7 +3,6 @@ using DirectoryService.Contracts;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.Locations;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

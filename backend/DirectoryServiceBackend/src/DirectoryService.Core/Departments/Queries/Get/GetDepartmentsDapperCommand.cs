@@ -1,5 +1,4 @@
-using DirectoryService.Contracts;
-using DirectoryService.Core.Abstractions;
+﻿using DirectoryService.Contracts;
 
 namespace DirectoryService.Core.Departments.Queries.Get;
 

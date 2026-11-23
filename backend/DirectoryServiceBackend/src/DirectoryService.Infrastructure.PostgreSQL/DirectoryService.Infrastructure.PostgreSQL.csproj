@@ -23,12 +23,13 @@
     <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Shared.Framework" />
+    <PackageReference Include="Shared.Kernel" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\DirectoryService.Core\DirectoryService.Core.csproj" />
     <ProjectReference Include="..\DirectoryService.Domain\DirectoryService.Domain.csproj" />
-    <ProjectReference Include="..\DirectoryService.Shared\DirectoryService.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,3 +42,4 @@
   </ItemGroup>
 
 </Project>
+

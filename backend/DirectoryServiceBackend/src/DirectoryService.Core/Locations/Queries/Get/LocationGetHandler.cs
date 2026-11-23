@@ -2,9 +2,7 @@
 using Dapper;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 using System.Data;
 

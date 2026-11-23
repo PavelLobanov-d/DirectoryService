@@ -4,7 +4,6 @@ using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Core.Departments;
 using DirectoryService.Core.Locations;
 using DirectoryService.Core.PositionsMatrix;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Core.Database;
 using DirectoryService.Infrastructure.PostgreSQL.Repositories;
 using DirectoryService.Infrastructure.PostgreSQL.Database;

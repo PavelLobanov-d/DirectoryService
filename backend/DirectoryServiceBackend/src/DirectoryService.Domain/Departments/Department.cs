@@ -2,11 +2,9 @@
 using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.DepartmentPositions;
-using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
 
 namespace DirectoryService.Domain.Departments;
 

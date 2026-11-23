@@ -1,8 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Core.Database;
-using DirectoryService.Core.Statistics;
-using DirectoryService.Shared;
-using DirectoryService.Domain.Statistics;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Repositories;
 

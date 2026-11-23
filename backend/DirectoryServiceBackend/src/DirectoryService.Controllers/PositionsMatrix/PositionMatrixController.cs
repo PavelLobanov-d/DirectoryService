@@ -1,6 +1,5 @@
 ﻿using DirectoryService.Contracts;
 using DirectoryService.Contracts.PositionsMatrix;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.PositionsMatrix;
 using DirectoryService.Core.PositionsMatrix.Commands.ChangeParent;
 using DirectoryService.Core.PositionsMatrix.Commands.Create;
@@ -10,7 +9,6 @@ using DirectoryService.Core.PositionsMatrix.Commands.Update;
 using DirectoryService.Core.PositionsMatrix.Queries.Get;
 using DirectoryService.Core.PositionsMatrix.Queries.GetById;
 using DirectoryService.Core.PositionsMatrix.Queries.GetByParentId;
-using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryService.Controllers.PositionsMatrix;
@@ -122,6 +120,22 @@ public class PositionMatrixController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new PositionMatrixChangeParentCommand(positionMatrixId, newParentId);
+        return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
+    }
+
+    [HttpPut("{positionMatrixId:guid}/parent")]
+    [ProducesResponseType<Envelope<ChangePositionMatrixParentResponse>>(200)]
+    [ProducesResponseType<Envelope>(400)]
+    [ProducesResponseType<Envelope>(404)]
+    [ProducesResponseType<Envelope>(409)]
+    [ProducesResponseType<Envelope>(500)]
+    public async Task<EndPointResult<ChangePositionMatrixParentResponse>> ChangeParentAsync(
+        [FromServices] ICommandHandler<ChangePositionMatrixParentResponse, ChangePositionMatrixParentCommand> handler,
+        [FromRoute] Guid positionMatrixId,
+        [FromBody] ChangePositionMatrixParentDto? request,
+        CancellationToken cancellationToken)
+    {
+        var command = new ChangePositionMatrixParentCommand(positionMatrixId, request?.ParentId);
         return await handler.ExecuteAsync(command, cancellationToken).ConfigureAwait(false);
     }
 

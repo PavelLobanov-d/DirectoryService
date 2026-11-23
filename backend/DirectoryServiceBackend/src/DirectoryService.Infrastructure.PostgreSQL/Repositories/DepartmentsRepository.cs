@@ -5,7 +5,6 @@ using DirectoryService.Core.Departments;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
-using DirectoryService.Shared;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

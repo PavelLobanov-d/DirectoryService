@@ -1,5 +1,4 @@
-using DirectoryService.Core.Abstractions;
-
+﻿
 namespace DirectoryService.Core.Departments.Queries.Tree;
 
 public record GetDepartmentTreeCommand : ICommand;

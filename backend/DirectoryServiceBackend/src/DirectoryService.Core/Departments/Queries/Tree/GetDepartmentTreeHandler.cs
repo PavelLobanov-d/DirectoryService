@@ -1,10 +1,8 @@
-using System.Data;
+﻿using System.Data;
 using CSharpFunctionalExtensions;
 using Dapper;
 using DirectoryService.Contracts.Departments;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
-using DirectoryService.Shared;
 
 namespace DirectoryService.Core.Departments.Queries.Tree;
 

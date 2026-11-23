@@ -1,6 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Shared;
 using System;
 using System.Collections.Generic;
 using System.Text;

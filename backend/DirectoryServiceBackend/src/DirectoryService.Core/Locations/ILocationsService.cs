@@ -1,8 +1,6 @@
 ﻿using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
-using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Shared;
 using CSharpFunctionalExtensions;
 
 using Microsoft.Extensions.Logging;

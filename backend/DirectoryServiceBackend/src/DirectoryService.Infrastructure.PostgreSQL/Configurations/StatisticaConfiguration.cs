@@ -1,5 +1,4 @@
-﻿using DirectoryService.Domain.Statistics;
-using DirectoryService.Infrastructure.PostgreSQL.Converters;
+﻿using DirectoryService.Infrastructure.PostgreSQL.Converters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

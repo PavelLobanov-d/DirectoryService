@@ -1,8 +1,6 @@
 ﻿using DirectoryService.Contracts.Locations;
-using DirectoryService.Core.Validation;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
-using DirectoryService.Shared;
 using FluentValidation;
 using FluentValidation.Validators;
 using System;

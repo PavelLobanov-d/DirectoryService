@@ -1,8 +1,6 @@
 ﻿using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentPositions;
-using DirectoryService.Domain.GlobalStatisticsClass;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
 
 namespace DirectoryService.Domain.PositionsMatrix;
 
@@ -24,15 +22,18 @@ public sealed class PositionMatrix : ISoftDeletable
         ParentId = parent?.Id;
         _parent = parent;
         Path = parent is null ? PathSlug.Create(slug).Value : parent.Path.CreateChild(slug).Value;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public PositionMatrixId Id { get; private set; }
     public DateTime? DeletedAt { get; private set; }
+    public DateTime UpdatedAt { get; private set; }
     public bool IsDeleted => DeletedAt.HasValue;
 
     public void SoftDelete()
     {
         DeletedAt ??= DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>
@@ -47,6 +48,7 @@ public sealed class PositionMatrix : ISoftDeletable
     /// иерархия родительских Slug'ов
     /// </summary>
     public PathSlug Path { get; private set; } = null!;
+    public int Depth => Path.Value.Count(c => c == '.');
     /// <summary>
     /// вышестоящая должность
     /// </summary>
@@ -139,7 +141,10 @@ public sealed class PositionMatrix : ISoftDeletable
         }
 
         _parent = newParent;
-        return refresh();
+        bool result = refresh();
+        if (result)
+            UpdatedAt = DateTime.UtcNow;
+        return result;
     }
 
 
@@ -215,6 +220,9 @@ public sealed class PositionMatrix : ISoftDeletable
             Name = name;
             result = true;
         }
+
+        if (result)
+            UpdatedAt = DateTime.UtcNow;
 
         return result;
     }

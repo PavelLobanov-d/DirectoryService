@@ -1,10 +1,8 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts.PositionsMatrix;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
-using DirectoryService.Shared;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

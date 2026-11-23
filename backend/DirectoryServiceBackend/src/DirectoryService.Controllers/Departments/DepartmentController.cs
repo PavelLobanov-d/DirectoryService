@@ -1,7 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Departments;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Departments;
 using DirectoryService.Core.Departments.Commands.ChangeParent;
 using DirectoryService.Core.Departments.Commands.Create;
@@ -16,7 +15,6 @@ using DirectoryService.Core.Departments.Queries.GetById;
 using DirectoryService.Core.Departments.Queries.GetByParentId;
 using DirectoryService.Core.Departments.Queries.Tree;
 using DirectoryService.Domain.Departments;
-using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryService.Controllers.Departments;

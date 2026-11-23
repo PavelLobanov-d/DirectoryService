@@ -1,12 +1,10 @@
-using System.Data;
+﻿using System.Data;
 using CSharpFunctionalExtensions;
 using Dapper;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Departments;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Domain.Departments;
-using DirectoryService.Shared;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Primitives;
 
