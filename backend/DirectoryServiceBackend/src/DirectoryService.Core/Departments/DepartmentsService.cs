@@ -1,5 +1,4 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.Departments;
 using DirectoryService.Core.DepartmentChiefPositions;
@@ -7,7 +6,6 @@ using DirectoryService.Core.DepartmentPositions;
 using DirectoryService.Core.Locations;
 using DirectoryService.Core.DepartmentLocations;
 using DirectoryService.Core.PositionsMatrix;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.DepartmentLocations;
@@ -15,11 +13,9 @@ using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
-using DirectoryService.Core.Validation;
 using DirectoryService.Core.Departments.Commands.Create;
 using DirectoryService.Core.Departments.Commands.Update;
 
@@ -351,7 +347,7 @@ public class DepartmentsService : IDepartmentsService
         bool result = false;
         DepartmentName? newName = null;
         Slug? newSlug = null;
-        PathSlug? newPathSlug = null;
+        bool parentPathChanged = false;
 
         if (departmentDto != null)
         {
@@ -429,9 +425,10 @@ public class DepartmentsService : IDepartmentsService
                     return GeneralErrors.NotFound(department.ParentId.Value, "Department").ToErrors();
                 }
             }
-            if (department.PathSlug != department.Parent?.PathSlugFull)
+            if (department.Parent is not null
+                && department.Path != department.Parent.Path.CreateChild(department.Slug).Value)
             {
-                newPathSlug = department.Parent?.PathSlugFull;
+                parentPathChanged = true;
             }
         }
         //потомки
@@ -465,7 +462,7 @@ public class DepartmentsService : IDepartmentsService
         }
 
         //обновляем потомков
-        if ((newSlug != null || newPathSlug != null) && department.Childs.Count > 0)
+        if ((newSlug != null || parentPathChanged) && department.Childs.Count > 0)
         {
             foreach (Department child in department.Childs)
             {
@@ -548,7 +545,7 @@ public class DepartmentsService : IDepartmentsService
             typeof(Department).Name,
             Statistica.Level.FINE,
             Statistica.Action.DETACH,
-            $"Отсоединён от {department.PathSlug}",
+            $"Отсоединён от {department.Path}",
             department.ParentId?.Value,
             typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);
@@ -558,7 +555,7 @@ public class DepartmentsService : IDepartmentsService
             typeof(Department).Name,
             Statistica.Level.FINE,
             Statistica.Action.ATTACH,
-            $"Присоединён к {departmentParent.PathSlugFull}",
+            $"Присоединён к {departmentParent.Path}",
             departmentParent.Id.Value,
             typeof(Department).Name,
             cancellationToken).ConfigureAwait(false);

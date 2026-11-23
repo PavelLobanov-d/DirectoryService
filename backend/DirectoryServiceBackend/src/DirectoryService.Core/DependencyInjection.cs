@@ -1,8 +1,6 @@
-﻿using DirectoryService.Core.Abstractions;
-using DirectoryService.Core.Departments;
+﻿using DirectoryService.Core.Departments;
 using DirectoryService.Core.Locations;
 using DirectoryService.Core.PositionsMatrix;
-using DirectoryService.Core.Statistics;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 

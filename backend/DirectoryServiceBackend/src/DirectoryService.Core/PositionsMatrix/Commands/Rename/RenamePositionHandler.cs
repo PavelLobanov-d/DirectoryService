@@ -1,10 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.PositionsMatrix.Commands.Rename;
@@ -82,7 +78,7 @@ public class RenamePositionHandler : ICommandHandler<bool, RenamePositionCommand
 
         await using var transactionScope = transactionScopeResult.Value;
 
-        positionMatrix.Update(resultName.Value, slug: null, pathSlug: null);
+        positionMatrix.Update(resultName.Value, slug: null);
         var resultUpdate = await _positionMatrixRepository.UpdateAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
         if (resultUpdate.IsFailure)
         {

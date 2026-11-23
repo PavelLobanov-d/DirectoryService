@@ -1,11 +1,11 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DirectoryService.Infrastructure.PostgreSQL.Converters;
@@ -115,6 +115,22 @@ public class SlugConverter : ValueConverter<Slug, string>
     }
 }
 
+public class PathSlugLTreeConverter : ValueConverter<PathSlug, LTree>
+{
+    public PathSlugLTreeConverter() : base(
+        path => new LTree(path.Value),
+        ltree => UnwrapResult(PathSlug.Create((string)ltree)))
+    { }
+    private static PathSlug UnwrapResult(Result<PathSlug, Error> result)
+    {
+        if (result.IsSuccess)
+        {
+            return result.Value;
+        }
+        throw new InvalidOperationException($"Ошибка разбора PathSlug из базы данных: {result.Error}");
+    }
+}
+
 public class PathSlugConverter : ValueConverter<PathSlug, string>
 {
     public PathSlugConverter() : base(
@@ -128,6 +144,15 @@ public class PathSlugConverter : ValueConverter<PathSlug, string>
             return result.Value;
         }
         throw new InvalidOperationException($"Ошибка загрузки PathSlug из базы данных: {result.Error}");
+    }
+}
+
+public class PathLTreeConverter : ValueConverter<string, LTree>
+{
+    public PathLTreeConverter() : base(
+        path => new LTree(path),
+        ltree => (string)ltree)
+    {
     }
 }
 

@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Dapper" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
@@ -27,6 +28,9 @@
 	<PackageReference Include="Serilog.Sinks.Console" />
 	<PackageReference Include="Serilog.Sinks.Debug" />
 	<PackageReference Include="Serilog.Sinks.Seq" />
+	<PackageReference Include="Shared.Core" />
+	<PackageReference Include="Shared.Framework" />
+	<PackageReference Include="Shared.Kernel" />
     <!--<PackageReference Include="Scalar.AspNetCore" />-->
   </ItemGroup>
 
@@ -35,7 +39,6 @@
     <ProjectReference Include="..\DirectoryService.Contracts\DirectoryService.Contracts.csproj" />
     <ProjectReference Include="..\DirectoryService.Core\DirectoryService.Core.csproj" />
     <ProjectReference Include="..\DirectoryService.Domain\DirectoryService.Domain.csproj" />
-    <ProjectReference Include="..\DirectoryService.Shared\DirectoryService.Shared.csproj" />
     <ProjectReference Include="..\DirectoryService.Infrastructure.PostgreSQL\DirectoryService.Infrastructure.PostgreSQL.csproj" />
   </ItemGroup>
 
@@ -53,3 +56,4 @@
   </Target>
   
 </Project>
+

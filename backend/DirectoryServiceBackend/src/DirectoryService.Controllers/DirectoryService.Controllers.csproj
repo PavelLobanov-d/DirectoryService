@@ -9,12 +9,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" />
     <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Shared.Core" />
+    <PackageReference Include="Shared.Kernel" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DirectoryService.Shared\DirectoryService.Shared.csproj" />
     <ProjectReference Include="..\DirectoryService.Contracts\DirectoryService.Contracts.csproj" />
     <ProjectReference Include="..\DirectoryService.Core\DirectoryService.Core.csproj" />
   </ItemGroup>
 
 </Project>
+

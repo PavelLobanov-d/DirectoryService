@@ -1,13 +1,9 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
 using DirectoryService.Core.DepartmentPositions;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.PositionsMatrix.Commands.Delete;
@@ -118,10 +114,11 @@ public class PositionMatrixDeleteHandler : ICommandHandler<bool, PositionMatrixD
             }
         }
 
-        var result = await _positionMatrixRepository.DeleteAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
+        positionMatrix.SoftDelete();
+        var result = await _positionMatrixRepository.UpdateAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
         {
-            _logger.LogError("Error _positionMatrixRepository.DeleteAsync");
+            _logger.LogError("Error soft deleting PositionMatrix");
             var rollbackResult = await transactionScope.RollBackAsync(cancellationToken).ConfigureAwait(false);
             if (rollbackResult.IsFailure)
                 return rollbackResult.Error.ToErrors();

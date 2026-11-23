@@ -1,13 +1,11 @@
 ﻿using DirectoryService.Contracts;
 using DirectoryService.Contracts.Locations;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Locations.Commands.Create;
 using DirectoryService.Core.Locations.Commands.Delete;
 using DirectoryService.Core.Locations.Commands.Update;
 using DirectoryService.Core.Locations.Queries.Get;
 using DirectoryService.Core.Locations.Queries.GetById;
 using DirectoryService.Core.Locations.Queries.GetTop;
-using DirectoryService.Shared;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryService.Controllers.Locations;

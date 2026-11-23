@@ -4,7 +4,6 @@ using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.Locations;
-using DirectoryService.Domain.Statistics;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;

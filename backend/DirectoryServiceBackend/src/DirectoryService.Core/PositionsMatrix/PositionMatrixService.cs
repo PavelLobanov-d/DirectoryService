@@ -2,11 +2,8 @@
 using DirectoryService.Contracts;
 using DirectoryService.Contracts.PositionsMatrix;
 using DirectoryService.Core.PositionsMatrix.Commands.Update;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using FluentValidation.Results;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
@@ -71,7 +68,7 @@ public class PositionMatrixService : IPositionMatrixService
         bool result = false;
         PositionName? newName = null;
         Slug? newSlug = null;
-        PathSlug? newPathSlug = null;
+        bool parentPathChanged = false;
 
         if (positionDto != null)
         {
@@ -149,9 +146,10 @@ public class PositionMatrixService : IPositionMatrixService
                     return GeneralErrors.NotFound(positionMatrix.ParentId.Value).ToErrors();
                 }
             }
-            if(positionMatrix.PathSlug != positionMatrix.Parent?.PathSlugFull)
+            if (positionMatrix.Parent is not null
+                && positionMatrix.Path != positionMatrix.Parent.Path.CreateChild(positionMatrix.Slug).Value)
             {
-                newPathSlug = positionMatrix.Parent?.PathSlugFull;
+                parentPathChanged = true;
             }
         }
         //потомки
@@ -166,7 +164,7 @@ public class PositionMatrixService : IPositionMatrixService
             positionMatrix.AddChilds(resultChilds.Value);
         }
 
-        if (positionMatrix.Update(newName, newSlug, newPathSlug))
+        if (positionMatrix.Update(newName, newSlug))
         {
             var resultPositions = await _positionMatrixRepository.UpdateAsync(positionMatrix, cancellationToken).ConfigureAwait(false);
             if (resultPositions.IsFailure)
@@ -184,7 +182,7 @@ public class PositionMatrixService : IPositionMatrixService
         }
 
         //обновляем потомков
-        if ((newSlug != null || newPathSlug != null) && positionMatrix.Childs.Count > 0)
+        if ((newSlug != null || parentPathChanged) && positionMatrix.Childs.Count > 0)
         {
             foreach (PositionMatrix child in positionMatrix.Childs)
             {

@@ -7,7 +7,6 @@
   <ItemGroup>
     <ProjectReference Include="..\DirectoryService.Contracts\DirectoryService.Contracts.csproj" />
     <ProjectReference Include="..\DirectoryService.Domain\DirectoryService.Domain.csproj" />
-    <ProjectReference Include="..\DirectoryService.Shared\DirectoryService.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -15,7 +14,12 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Scrutor" />
+    <PackageReference Include="Shared.Core" />
+    <PackageReference Include="Shared.Framework" />
+    <PackageReference Include="Shared.Kernel" />
   </ItemGroup>
 
 </Project>
+

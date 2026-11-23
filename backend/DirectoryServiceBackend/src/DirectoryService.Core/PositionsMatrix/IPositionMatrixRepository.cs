@@ -2,7 +2,6 @@
 using DirectoryService.Contracts;
 using DirectoryService.Domain.Locations;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Shared;
 using System.Linq.Expressions;
 
 namespace DirectoryService.Core.PositionsMatrix;

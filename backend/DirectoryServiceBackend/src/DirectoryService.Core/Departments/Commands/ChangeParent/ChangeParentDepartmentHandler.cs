@@ -1,10 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.Departments;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.Departments.Commands.ChangeParent;
@@ -104,7 +100,7 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
 
         await using var transactionScope = transactionScopeResult.Value;
 
-        var storeDepartmentPathSlug = department.PathSlug;
+        var storeDepartmentPathSlug = department.Path;
         var storeDepartmentParentId = department.ParentId?.Value ;
 
         if (department.Move(departmentParent))
@@ -132,7 +128,7 @@ public class ChangeParentDepartmentHandler : ICommandHandler<bool, ChangeParentD
                 typeof(Department).Name,
                 Statistica.Level.FINE,
                 Statistica.Action.ATTACH,
-                $"Присоединён к {departmentParent.PathSlugFull}",
+                $"Присоединён к {departmentParent.Path}",
                 departmentParent.Id.Value,
                 typeof(Department).Name,
                 cancellationToken).ConfigureAwait(false);

@@ -1,5 +1,4 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Shared;
 using System.Text.RegularExpressions;
 //using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -31,7 +30,7 @@ public sealed partial record Slug
         return new Slug(value);
     }
 
-    [GeneratedRegex("^[a-z]+$", options: RegexOptions.Compiled)]
+    [GeneratedRegex("^[a-z0-9]+$", options: RegexOptions.Compiled)]
     private static partial Regex _slugRegex { get; }
     public override string ToString() => Value.ToString();
     public static explicit operator string(Slug slug) => slug.Value;

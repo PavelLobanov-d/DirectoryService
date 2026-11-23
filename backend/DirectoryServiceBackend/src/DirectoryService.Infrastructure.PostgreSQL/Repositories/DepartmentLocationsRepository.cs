@@ -3,7 +3,6 @@ using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentLocations;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.Departments;
-using DirectoryService.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;

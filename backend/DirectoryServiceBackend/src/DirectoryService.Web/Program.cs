@@ -3,23 +3,12 @@ using DirectoryService.Domain.shared;
 using DirectoryService.Infrastructure.PostgreSQL;
 using DirectoryService.Infrastructure.PostgreSQL.Database;
 using DirectoryService.Web;
-using DirectoryService.Web.Middlewares;
 using dotenv.net;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.EntityFrameworkCore;
-//using Microsoft.OpenApi; // Используется корневое пространство вместо .Models и .Any
-using Scalar.AspNetCore;
 using Serilog;
-using Serilog.Configuration;
-using Serilog.Exceptions;
-using System.Globalization;
 
-Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
-    .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
-    .CreateLogger();
-
-Serilog.Debugging.SelfLog.Enable(msg => Console.WriteLine($"[SERILOG ERROR] {msg}"));
+Log.Logger = SharedHosting.CreateBootstrapLogger();
+SharedHosting.EnableSerilogSelfLog();
 
 try
 {
@@ -46,12 +35,9 @@ try
     builder.Services.AddScoped<IReadDbContext>(provider =>
         provider.GetRequiredService<DirectoryServiceDbContext>());
 
-    builder.Services.AddOpenApi();
-    builder.Services.AddEndpointsApiExplorer();
-
     WebApplication app = builder.Build();
 
-    app.UseSerilogRequestLogging();
+    app.UseSharedSerilogRequestLogging();
 
     app.UseExceptionMiddleware();
 
@@ -59,15 +45,9 @@ try
 
     app.MapControllers();
 
-    app.MapHealthChecks("/health");
+    app.MapSharedHealthChecks();
 
-
-    if (!app.Environment.IsProduction())
-    {
-        app.MapOpenApi();
-        app.MapScalarApiReference();
-    }
-
+    app.MapSharedApiDocs();
 
     app.MapGet("/guid", () => $"{Guid.CreateVersion7()}");
 
@@ -84,4 +64,3 @@ finally
 
 
 public partial class Program { }
-

@@ -1,9 +1,7 @@
 ﻿using CSharpFunctionalExtensions;
 using DirectoryService.Contracts.PositionsMatrix;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Domain.PositionsMatrix;
-using DirectoryService.Shared;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -43,8 +41,7 @@ public class PositionMatrixGetByParentIdHandler : ICommandHandler<List<GetPositi
             {
                 p.Id,
                 p.Name,
-                p.PathSlug,
-                p.Slug,
+                p.Path,
                 p.ParentId,
                 ChildsIds = p.Childs.Select(c => c.Id).ToList(),
             })
@@ -55,11 +52,8 @@ public class PositionMatrixGetByParentIdHandler : ICommandHandler<List<GetPositi
             .Select(row => new GetPositionMatrixResponse(
                 row.Id.Value,
                 row.Name.Value,
-                row.PathSlug is null
-                    ? row.Slug.Value
-                    : row.PathSlug.Value + "." + row.Slug.Value,
+                row.Path.Value,
                 row.ParentId?.Value,
-                row.PathSlug?.Value,
                 row.ChildsIds.Select(c => c.Value).ToList()))
             .ToList();
     }

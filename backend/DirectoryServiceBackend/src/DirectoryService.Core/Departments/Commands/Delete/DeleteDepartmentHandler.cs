@@ -1,15 +1,11 @@
 ﻿using CSharpFunctionalExtensions;
-using DirectoryService.Core.Abstractions;
 using DirectoryService.Core.Database;
 using DirectoryService.Core.DepartmentChiefPositions;
 using DirectoryService.Core.DepartmentLocations;
 using DirectoryService.Core.DepartmentPositions;
-using DirectoryService.Core.Statistics;
 using DirectoryService.Domain.DepartmentLocations;
 using DirectoryService.Domain.DepartmentPositions;
 using DirectoryService.Domain.Departments;
-using DirectoryService.Domain.Statistics;
-using DirectoryService.Shared;
 using Microsoft.Extensions.Logging;
 
 namespace DirectoryService.Core.Departments.Commands.Delete;
@@ -106,10 +102,11 @@ public class DeleteDepartmentHandler : ICommandHandler<bool, DeleteDepartmentCom
                 return await RollbackAsync(transactionScope, "ошибка удаления связи подразделение-руководитель", cancellationToken).ConfigureAwait(false);
         }
 
-        var deleteResult = await _departmentRepository.DeleteAsync(department, cancellationToken).ConfigureAwait(false);
+        department.SoftDelete();
+        var deleteResult = await _departmentRepository.UpdateAsync(department, cancellationToken).ConfigureAwait(false);
         if (deleteResult.IsFailure)
         {
-            _logger.LogError("Error _departmentRepository.DeleteAsync for {DepartmentId}", department.Id);
+            _logger.LogError("Error soft deleting department {DepartmentId}", department.Id);
             return await RollbackAsync(transactionScope, "ошибка удаления департамента", cancellationToken).ConfigureAwait(false);
         }
 

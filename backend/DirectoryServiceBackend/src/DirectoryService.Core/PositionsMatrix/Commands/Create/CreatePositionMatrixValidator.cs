@@ -1,5 +1,4 @@
 ﻿using DirectoryService.Contracts.PositionsMatrix;
-using DirectoryService.Core.Validation;
 using DirectoryService.Domain.PositionsMatrix;
 using DirectoryService.Domain.shared;
 using FluentValidation;

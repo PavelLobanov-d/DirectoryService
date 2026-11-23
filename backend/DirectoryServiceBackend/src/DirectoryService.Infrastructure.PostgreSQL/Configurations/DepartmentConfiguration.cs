@@ -1,4 +1,5 @@
-﻿using DirectoryService.Domain.DepartmentChiefPositions;
+﻿using DirectoryService.Core.Departments;
+using DirectoryService.Domain.DepartmentChiefPositions;
 using DirectoryService.Domain.Departments;
 using DirectoryService.Infrastructure.PostgreSQL.Converters;
 using Microsoft.EntityFrameworkCore;
@@ -29,16 +30,30 @@ internal class DepartmentConfiguration: IEntityTypeConfiguration <Department>
             .HasColumnName("slug")
             .IsRequired();
 
-        builder.Property(v => v.PathSlug)
-            .HasConversion<PathSlugConverter>()
-            .HasMaxLength(100)
-            .HasColumnName("pathslug")
-            .IsRequired(false);
-
         builder.Property(v => v.ParentId)
             .HasConversion<DepartmentIdConverter>()
             .HasColumnName("parentid")
             .IsRequired(false);
+
+        builder.Property(v => v.DeletedAt)
+            .HasColumnName("deleted_at");
+
+        builder.Property(v => v.UpdatedAt)
+            .HasColumnName("updated_at")
+            .HasDefaultValueSql("now()")
+            .IsRequired();
+
+        builder.HasQueryFilter(v => v.DeletedAt == null);
+
+        builder.Property(v => v.Path)
+            .HasConversion<PathSlugLTreeConverter>()
+            .HasColumnType("ltree")
+            .HasColumnName(DepartmentPathIndex.ColumnName)
+            .IsRequired();
+
+        builder.HasIndex(v => v.Path)
+            .HasDatabaseName(DepartmentPathIndex.IndexName)
+            .HasMethod("gist");
 
         builder.HasMany(v => v.Childs)
             .WithOne(v => v.Parent)
